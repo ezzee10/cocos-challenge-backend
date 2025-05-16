@@ -19,3 +19,9 @@ export function validateDatetime(value: Date, fieldName: string) {
 		throw new Error(`${fieldName} must be a valid Date object`);
 	}
 }
+
+export function validateNonEmptyString(value: string, fieldName: string) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new Error(`${fieldName} must be a non-empty string`);
+	}
+}
