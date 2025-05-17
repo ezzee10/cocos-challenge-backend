@@ -25,3 +25,5 @@ export function validateNonEmptyString(value: string, fieldName: string) {
 		throw new Error(`${fieldName} must be a non-empty string`);
 	}
 }
+
+export type Optional<T> = T | null;

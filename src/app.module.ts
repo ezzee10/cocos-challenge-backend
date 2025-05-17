@@ -6,6 +6,7 @@ import { UserEntity } from './infrastructure/database/entities/user.entity';
 import { InstrumentEntity } from './infrastructure/database/entities/instrument.entity';
 import { OrderController } from './presenter/controllers/order.controller';
 import { CreateOrderUseCase } from './application/create-order.usecase';
+import { MarketDataEntity } from './infrastructure/database/entities/market-data.entity';
 
 @Module({
 	imports: [
@@ -20,11 +21,21 @@ import { CreateOrderUseCase } from './application/create-order.usecase';
 				username: process.env.DB_USERNAME,
 				password: process.env.DB_PASSWORD,
 				database: process.env.DB_NAME,
-				entities: [OrderEntity, InstrumentEntity, UserEntity],
+				entities: [
+					OrderEntity,
+					InstrumentEntity,
+					UserEntity,
+					MarketDataEntity,
+				],
 				synchronize: false,
 			}),
 		}),
-		TypeOrmModule.forFeature([OrderEntity, InstrumentEntity, UserEntity]),
+		TypeOrmModule.forFeature([
+			OrderEntity,
+			InstrumentEntity,
+			UserEntity,
+			MarketDataEntity,
+		]),
 	],
 	controllers: [OrderController],
 	providers: [
