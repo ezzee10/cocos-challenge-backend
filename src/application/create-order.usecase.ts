@@ -1,12 +1,70 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
+import { OrderType } from 'src/domain/enums/order-type.enum';
+import { OrderSide } from 'src/domain/enums/order-side.enum';
 import { Order } from 'src/domain/models/order.model';
+import { MarketData } from 'src/domain/models/market-data.model';
 import { CreateOrderDto } from 'src/presenter/dto/create-order.dto';
+import { IOrderRepository } from 'src/domain/repositories/order.repository.interface';
+import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
 
 @Injectable()
 export class CreateOrderUseCase {
-	constructor() {}
+	constructor(
+		private readonly orderRepository: IOrderRepository,
+		private readonly marketDataRepository: IMarketRepository,
+	) {}
 
-	async execute(createOrderDto: CreateOrderDto): Promise<Order | null> {
-		return null;
+	async execute(createOrderDto: CreateOrderDto): Promise<Order> {
+		const { instrumentId, userId, type, side, size, price } =
+			createOrderDto;
+
+		const finalPrice = await this.calculateFinalPrice(
+			type,
+			side,
+			instrumentId,
+			price,
+		);
+
+		const order = new Order({
+			instrumentId,
+			userId,
+			size,
+			price: finalPrice,
+			type,
+			side,
+			datetime: new Date(),
+		});
+
+		return this.orderRepository.save(order);
+	}
+
+	private async calculateFinalPrice(
+		type: OrderType,
+		side: OrderSide,
+		instrumentId: number,
+		price?: number,
+	): Promise<number> {
+		if (side === OrderSide.CASH_IN || side === OrderSide.CASH_OUT) {
+			return 1;
+		}
+
+		if (type === OrderType.MARKET) {
+			const marketData = await this.getMarketData(instrumentId);
+			return marketData.getClose();
+		}
+
+		return price ?? 0;
+	}
+
+	private async getMarketData(instrumentId: number): Promise<MarketData> {
+		const marketData =
+			await this.marketDataRepository.getMarketDataByInstrument(
+				instrumentId,
+			);
+		if (!marketData)
+			throw new ConflictException(
+				`Market data not found for instrumentId ${instrumentId}`,
+			);
+		return marketData;
 	}
 }

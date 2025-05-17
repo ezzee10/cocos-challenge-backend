@@ -7,6 +7,8 @@ import { InstrumentEntity } from './infrastructure/database/entities/instrument.
 import { OrderController } from './presenter/controllers/order.controller';
 import { CreateOrderUseCase } from './application/create-order.usecase';
 import { MarketDataEntity } from './infrastructure/database/entities/market-data.entity';
+import { OrderRepository } from './infrastructure/database/repositories/order.repository';
+import { MarketDataRepository } from './infrastructure/database/repositories/market-data.repository';
 
 @Module({
 	imports: [
@@ -39,9 +41,15 @@ import { MarketDataEntity } from './infrastructure/database/entities/market-data
 	],
 	controllers: [OrderController],
 	providers: [
+		OrderRepository,
+		MarketDataRepository,
 		{
 			provide: CreateOrderUseCase,
-			useFactory: () => new CreateOrderUseCase(),
+			useFactory: (
+				orderRepository: OrderRepository,
+				marketDataRepository: MarketDataRepository,
+			) => new CreateOrderUseCase(orderRepository, marketDataRepository),
+			inject: [OrderRepository, MarketDataRepository],
 		},
 	],
 })
