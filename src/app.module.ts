@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrderEntity } from './infrastructure/database/entities/order.entity';
 import { UserEntity } from './infrastructure/database/entities/user.entity';
 import { InstrumentEntity } from './infrastructure/database/entities/instrument.entity';
+import { OrderController } from './presenter/controllers/order.controller';
+import { CreateOrderUseCase } from './application/create-order.usecase';
 
 @Module({
 	imports: [
@@ -24,7 +26,12 @@ import { InstrumentEntity } from './infrastructure/database/entities/instrument.
 		}),
 		TypeOrmModule.forFeature([OrderEntity, InstrumentEntity, UserEntity]),
 	],
-	controllers: [],
-	providers: [],
+	controllers: [OrderController],
+	providers: [
+		{
+			provide: CreateOrderUseCase,
+			useFactory: () => new CreateOrderUseCase(),
+		},
+	],
 })
 export class AppModule {}
