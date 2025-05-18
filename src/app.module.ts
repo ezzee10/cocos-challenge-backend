@@ -5,7 +5,7 @@ import { OrderEntity } from './infrastructure/database/entities/order.entity';
 import { UserEntity } from './infrastructure/database/entities/user.entity';
 import { InstrumentEntity } from './infrastructure/database/entities/instrument.entity';
 import { OrderController } from './presenter/controllers/order.controller';
-import { CreateOrderUseCase } from './application/create-order.usecase';
+import { CreateOrderUseCase } from './application/usecases/create-order.usecase';
 import { MarketDataEntity } from './infrastructure/database/entities/market-data.entity';
 import { OrderRepository } from './infrastructure/database/repositories/order.repository';
 import { MarketDataRepository } from './infrastructure/database/repositories/market-data.repository';

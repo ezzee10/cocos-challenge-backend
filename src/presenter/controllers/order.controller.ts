@@ -1,7 +1,10 @@
 import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
-import { CreateOrderUseCase } from 'src/application/create-order.usecase';
-import { Order } from 'src/domain/models/order.model';
+import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
 import { CreateOrderDto } from '../dto/create-order.dto';
+import {
+	CreateOrderResponseDto,
+	mapOrderToCreateOrderResponseDto,
+} from '../dto/responses/create-order-response.dto';
 
 @Controller('orders')
 export class OrderController {
@@ -11,8 +14,8 @@ export class OrderController {
 	@HttpCode(HttpStatus.CREATED)
 	async createOrder(
 		@Body() createOrderDto: CreateOrderDto,
-	): Promise<Order | null> {
+	): Promise<CreateOrderResponseDto> {
 		const order = await this.createOrderUseCase.execute(createOrderDto);
-		return order;
+		return mapOrderToCreateOrderResponseDto(order);
 	}
 }
