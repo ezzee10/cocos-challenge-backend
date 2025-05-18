@@ -12,6 +12,8 @@ import { MarketDataRepository } from './infrastructure/database/repositories/mar
 import { IInstrumentRepository } from './domain/repositories/instrument.repository.interface';
 import { InstrumentRepository } from './infrastructure/database/repositories/instrument.repository';
 import { PortfolioService } from './domain/services/portfolio.service';
+import { InstrumentController } from './presenter/controllers/instrument.controller';
+import { SearchInstrumentsUseCase } from './application/usecases/search-instruments.usecase';
 
 @Module({
 	imports: [
@@ -42,7 +44,7 @@ import { PortfolioService } from './domain/services/portfolio.service';
 			MarketDataEntity,
 		]),
 	],
-	controllers: [OrderController],
+	controllers: [OrderController, InstrumentController],
 	providers: [
 		OrderRepository,
 		MarketDataRepository,
@@ -68,6 +70,13 @@ import { PortfolioService } from './domain/services/portfolio.service';
 				InstrumentRepository,
 				PortfolioService,
 			],
+		},
+		{
+			provide: SearchInstrumentsUseCase,
+			useFactory: (instrumentRepository: InstrumentRepository) => {
+				return new SearchInstrumentsUseCase(instrumentRepository);
+			},
+			inject: [InstrumentRepository],
 		},
 	],
 })

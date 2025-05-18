@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InstrumentEntity } from '../entities/instrument.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Instrument } from 'src/domain/models/instrument.model';
 import { Optional } from 'src/utils/utils';
@@ -23,6 +23,21 @@ export class InstrumentRepository implements IInstrumentRepository {
 		}
 
 		return this.mapInstrumentEntityToInstrument(instrumentEntity);
+	}
+
+	async searchInstrumentsByTicketOrName(
+		ticker: string,
+		name: string,
+	): Promise<Optional<Instrument[]>> {
+		const where = [{ ticker }, { name: Like(`%${name}%`) }];
+
+		const instrumentEntities = await this.instrumentRepository.find({
+			where,
+		});
+
+		return instrumentEntities.map((instrumentEntity) =>
+			this.mapInstrumentEntityToInstrument(instrumentEntity),
+		);
 	}
 
 	private mapInstrumentEntityToInstrument(
