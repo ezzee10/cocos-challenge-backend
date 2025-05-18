@@ -11,6 +11,7 @@ import { OrderRepository } from './infrastructure/database/repositories/order.re
 import { MarketDataRepository } from './infrastructure/database/repositories/market-data.repository';
 import { IInstrumentRepository } from './domain/repositories/instrument.repository.interface';
 import { InstrumentRepository } from './infrastructure/database/repositories/instrument.repository';
+import { PortfolioService } from './domain/services/portfolio.service';
 
 @Module({
 	imports: [
@@ -46,22 +47,26 @@ import { InstrumentRepository } from './infrastructure/database/repositories/ins
 		OrderRepository,
 		MarketDataRepository,
 		InstrumentRepository,
+		PortfolioService,
 		{
 			provide: CreateOrderUseCase,
 			useFactory: (
 				orderRepository: OrderRepository,
 				marketDataRepository: MarketDataRepository,
 				instrumentRepository: IInstrumentRepository,
+				portfolioService: PortfolioService,
 			) =>
 				new CreateOrderUseCase(
 					orderRepository,
 					marketDataRepository,
 					instrumentRepository,
+					portfolioService,
 				),
 			inject: [
 				OrderRepository,
 				MarketDataRepository,
 				InstrumentRepository,
+				PortfolioService,
 			],
 		},
 	],

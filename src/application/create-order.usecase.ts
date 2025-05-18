@@ -8,6 +8,8 @@ import { IOrderRepository } from 'src/domain/repositories/order.repository.inter
 import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
 import { Instrument } from 'src/domain/models/instrument.model';
 import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
+import { OrderStatus } from 'src/domain/enums/order-status.enum';
+import { PortfolioService } from 'src/domain/services/portfolio.service';
 
 @Injectable()
 export class CreateOrderUseCase {
@@ -15,6 +17,7 @@ export class CreateOrderUseCase {
 		private readonly orderRepository: IOrderRepository,
 		private readonly marketDataRepository: IMarketRepository,
 		private readonly instrumentRepository: IInstrumentRepository,
+		private readonly portfolioService: PortfolioService,
 	) {}
 
 	async execute(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -30,6 +33,30 @@ export class CreateOrderUseCase {
 
 		const instrument = await this.getInstrument(instrumentId);
 
+		const previousOrders = await this.getPreviousOrders(
+			userId,
+			OrderStatus.FILLED,
+		);
+
+		try {
+			this.validateOrder(side, finalPrice, size, previousOrders);
+		} catch (error) {
+			const order = new Order({
+				instrument,
+				userId,
+				size,
+				price: finalPrice,
+				type,
+				side,
+				datetime: new Date(),
+			});
+
+			order.rejectOrder();
+
+			await this.orderRepository.save(order);
+			throw error;
+		}
+
 		const order = new Order({
 			instrument,
 			userId,
@@ -41,6 +68,50 @@ export class CreateOrderUseCase {
 		});
 
 		return this.orderRepository.save(order);
+	}
+
+	private validateOrder(
+		side: OrderSide,
+		price: number,
+		size: number,
+		previousOrders: Order[] = [],
+	): void {
+		this.validateAvailableCash(side, price, size, previousOrders);
+		this.validateAvailableQuantityStocks(side, size, previousOrders);
+	}
+
+	private validateAvailableCash(
+		side: OrderSide,
+		price: number,
+		size: number,
+		orders: Order[],
+	): void {
+		if (side === OrderSide.BUY || side === OrderSide.CASH_OUT) {
+			const availableCash =
+				this.portfolioService.calculateAvailableCash(orders);
+			if (availableCash < price * size)
+				throw new ConflictException(
+					'Insufficient funds to process the transaction',
+				);
+		}
+	}
+
+	private validateAvailableQuantityStocks(
+		side: OrderSide,
+		size: number,
+		orders: Order[],
+	): boolean {
+		if (side === OrderSide.SELL) {
+			const availableStocks =
+				this.portfolioService.calculateQuantityAvailableStocks(orders);
+			if (availableStocks < size) {
+				throw new ConflictException(
+					'Insufficient stocks to process the transaction',
+				);
+			}
+		}
+
+		return true;
 	}
 
 	private async calculateFinalPrice(
@@ -72,6 +143,18 @@ export class CreateOrderUseCase {
 		}
 
 		return instrument;
+	}
+
+	private async getPreviousOrders(
+		userId: number,
+		status: OrderStatus,
+	): Promise<Order[]> {
+		const orders = await this.orderRepository.getOrdersByUserIdAndStatus(
+			userId,
+			status,
+		);
+
+		return orders;
 	}
 
 	private async getMarketData(instrumentId: number): Promise<MarketData> {
