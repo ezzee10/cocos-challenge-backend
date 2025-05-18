@@ -2,6 +2,7 @@ import {
 	IsDefined,
 	IsEnum,
 	IsInt,
+	IsOptional,
 	IsPositive,
 	Min,
 	ValidateIf,
@@ -21,6 +22,11 @@ export class CreateOrderDto {
 	@IsInt()
 	@Min(1)
 	size!: number;
+
+	@IsOptional()
+	@IsInt()
+	@Min(1)
+	amount?: number;
 
 	@ValidateIf((o: CreateOrderDto) => o.type === OrderType.LIMIT)
 	@IsDefined({ message: 'Price is required for LIMIT orders.' })

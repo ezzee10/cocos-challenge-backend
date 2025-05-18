@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+	BadRequestException,
+	ConflictException,
+	Injectable,
+} from '@nestjs/common';
 import { OrderType } from 'src/domain/enums/order-type.enum';
 import { OrderSide } from 'src/domain/enums/order-side.enum';
 import { Order } from 'src/domain/models/order.model';
@@ -21,8 +25,19 @@ export class CreateOrderUseCase {
 	) {}
 
 	async execute(createOrderDto: CreateOrderDto): Promise<Order> {
-		const { instrumentId, userId, type, side, size, price } =
-			createOrderDto;
+		const {
+			instrumentId,
+			userId,
+			type,
+			side,
+			size: inputSize,
+			amount,
+			price,
+		} = createOrderDto;
+
+		this.validateAmountAndSize(type, amount, inputSize);
+
+		const instrument = await this.getInstrument(instrumentId);
 
 		const finalPrice = await this.calculateFinalPrice(
 			type,
@@ -31,7 +46,12 @@ export class CreateOrderUseCase {
 			price,
 		);
 
-		const instrument = await this.getInstrument(instrumentId);
+		const size = this.calculateFinalSize(
+			amount,
+			inputSize,
+			finalPrice,
+			side,
+		);
 
 		const previousOrders = await this.getPreviousOrders(
 			userId,
@@ -112,6 +132,56 @@ export class CreateOrderUseCase {
 		}
 
 		return true;
+	}
+
+	private validateAmountAndSize(
+		type: OrderType,
+		amount?: number,
+		size?: number,
+	): void {
+		if (amount && type !== OrderType.MARKET) {
+			throw new BadRequestException(
+				'Amount is only allowed for MARKET orders',
+			);
+		}
+
+		if (
+			(amount === undefined && size === undefined) ||
+			(amount !== undefined && size !== undefined)
+		) {
+			throw new BadRequestException(
+				'You must provide either amount or size, but not both',
+			);
+		}
+	}
+
+	private calculateFinalSize(
+		amount?: number,
+		size?: number,
+		price?: number,
+		orderSide?: OrderSide,
+	): number {
+		if (
+			(orderSide === OrderSide.CASH_IN ||
+				orderSide === OrderSide.CASH_OUT) &&
+			!size
+		)
+			throw new BadRequestException(
+				'Size is required for cash operations',
+			);
+
+		if (size !== undefined) return size;
+		if (amount !== undefined && price !== undefined) {
+			const computedSize = Math.floor(amount / price);
+			if (computedSize < 1) {
+				throw new ConflictException(
+					`The amount (${amount}) is not enough to buy at least one unit at price ${price}`,
+				);
+			}
+			return computedSize;
+		}
+
+		throw new BadRequestException('Data is missing to calculate size');
 	}
 
 	private async calculateFinalPrice(
