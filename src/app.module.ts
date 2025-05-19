@@ -22,6 +22,7 @@ import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfoli
 	imports: [
 		ConfigModule.forRoot({
 			isGlobal: true,
+			envFilePath: `.env.${process.env.NODE_ENV || 'local'}`,
 		}),
 		TypeOrmModule.forRootAsync({
 			useFactory: () => ({
@@ -38,6 +39,7 @@ import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfoli
 					MarketDataEntity,
 				],
 				synchronize: false,
+				ssl: true,
 			}),
 		}),
 		TypeOrmModule.forFeature([
