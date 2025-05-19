@@ -14,6 +14,9 @@ import { InstrumentRepository } from './infrastructure/database/repositories/ins
 import { PortfolioService } from './domain/services/portfolio.service';
 import { InstrumentController } from './presenter/controllers/instrument.controller';
 import { SearchInstrumentsUseCase } from './application/usecases/search-instruments.usecase';
+import { CalculatePositionsByOrdersUseCase } from './application/usecases/calculate-positions.usecase';
+import { PortfolioController } from './presenter/controllers/portfolio.controller';
+import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfolio.usecase';
 
 @Module({
 	imports: [
@@ -44,7 +47,7 @@ import { SearchInstrumentsUseCase } from './application/usecases/search-instrume
 			MarketDataEntity,
 		]),
 	],
-	controllers: [OrderController, InstrumentController],
+	controllers: [OrderController, InstrumentController, PortfolioController],
 	providers: [
 		OrderRepository,
 		MarketDataRepository,
@@ -77,6 +80,34 @@ import { SearchInstrumentsUseCase } from './application/usecases/search-instrume
 				return new SearchInstrumentsUseCase(instrumentRepository);
 			},
 			inject: [InstrumentRepository],
+		},
+		{
+			provide: CalculatePositionsByOrdersUseCase,
+			useFactory: (marketDataRepository: MarketDataRepository) => {
+				return new CalculatePositionsByOrdersUseCase(
+					marketDataRepository,
+				);
+			},
+			inject: [MarketDataRepository],
+		},
+		{
+			provide: GetPortfolioByUserIdUseCase,
+			useFactory: (
+				orderRepository: OrderRepository,
+				calculatePositionsByOrdersUseCase: CalculatePositionsByOrdersUseCase,
+				portfolioService: PortfolioService,
+			) => {
+				return new GetPortfolioByUserIdUseCase(
+					orderRepository,
+					calculatePositionsByOrdersUseCase,
+					portfolioService,
+				);
+			},
+			inject: [
+				OrderRepository,
+				CalculatePositionsByOrdersUseCase,
+				PortfolioService,
+			],
 		},
 	],
 })
