@@ -17,6 +17,7 @@ import { SearchInstrumentsUseCase } from './application/usecases/search-instrume
 import { CalculatePositionsByOrdersUseCase } from './application/usecases/calculate-positions.usecase';
 import { PortfolioController } from './presenter/controllers/portfolio.controller';
 import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfolio.usecase';
+import { OrderValidationService } from './domain/services/order-validation.service';
 
 @Module({
 	imports: [
@@ -55,25 +56,26 @@ import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfoli
 		MarketDataRepository,
 		InstrumentRepository,
 		PortfolioService,
+		OrderValidationService,
 		{
 			provide: CreateOrderUseCase,
 			useFactory: (
 				orderRepository: OrderRepository,
 				marketDataRepository: MarketDataRepository,
 				instrumentRepository: IInstrumentRepository,
-				portfolioService: PortfolioService,
+				orderValidationService: OrderValidationService,
 			) =>
 				new CreateOrderUseCase(
 					orderRepository,
 					marketDataRepository,
 					instrumentRepository,
-					portfolioService,
+					orderValidationService,
 				),
 			inject: [
 				OrderRepository,
 				MarketDataRepository,
 				InstrumentRepository,
-				PortfolioService,
+				OrderValidationService,
 			],
 		},
 		{
@@ -110,6 +112,13 @@ import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfoli
 				CalculatePositionsByOrdersUseCase,
 				PortfolioService,
 			],
+		},
+		{
+			provide: OrderValidationService,
+			useFactory: (portfolioService: PortfolioService) => {
+				return new OrderValidationService(portfolioService);
+			},
+			inject: [PortfolioService],
 		},
 	],
 })

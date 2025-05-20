@@ -13,8 +13,7 @@ import { IMarketRepository } from 'src/domain/repositories/market-data.repositor
 import { Instrument } from 'src/domain/models/instrument.model';
 import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
 import { OrderStatus } from 'src/domain/enums/order-status.enum';
-import { PortfolioService } from 'src/domain/services/portfolio.service';
-import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
+import { OrderValidationService } from 'src/domain/services/order-validation.service';
 
 @Injectable()
 export class CreateOrderUseCase {
@@ -22,7 +21,7 @@ export class CreateOrderUseCase {
 		private readonly orderRepository: IOrderRepository,
 		private readonly marketDataRepository: IMarketRepository,
 		private readonly instrumentRepository: IInstrumentRepository,
-		private readonly portfolioService: PortfolioService,
+		private readonly orderValidationService: OrderValidationService,
 	) {}
 
 	async execute(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -36,12 +35,11 @@ export class CreateOrderUseCase {
 			price,
 		} = createOrderDto;
 
-		this.validateAmountAndSize(type, amount, inputSize);
+		this.orderValidationService.validateAmountAndSize(createOrderDto);
 
-		const instrument = await this.getAndValidateInstrument(
-			instrumentId,
-			side,
-		);
+		const instrument = await this.getInstrumentById(instrumentId);
+
+		this.orderValidationService.validateInstrument(instrument, side);
 
 		const finalPrice = await this.calculateFinalPrice(
 			type,
@@ -50,12 +48,7 @@ export class CreateOrderUseCase {
 			price,
 		);
 
-		const size = this.calculateFinalSize(
-			amount,
-			inputSize,
-			finalPrice,
-			side,
-		);
+		const size = this.calculateFinalSize(amount, inputSize, finalPrice);
 
 		const previousOrders = await this.getPreviousOrders(
 			userId,
@@ -63,22 +56,22 @@ export class CreateOrderUseCase {
 		);
 
 		try {
-			this.validateOrder(side, finalPrice, size, previousOrders);
+			this.orderValidationService.validateFunds(
+				side,
+				finalPrice,
+				size,
+				previousOrders,
+			);
 		} catch (error) {
-			const order = new Order({
+			await this.rejectAndThrowOrder(
 				instrument,
 				userId,
 				size,
-				price: finalPrice,
+				finalPrice,
 				type,
 				side,
-				datetime: new Date(),
-			});
-
-			order.rejectOrder();
-
-			await this.orderRepository.save(order);
-			throw error;
+				error,
+			);
 		}
 
 		const order = new Order({
@@ -94,86 +87,11 @@ export class CreateOrderUseCase {
 		return this.orderRepository.save(order);
 	}
 
-	private validateOrder(
-		side: OrderSide,
-		price: number,
-		size: number,
-		previousOrders: Order[] = [],
-	): void {
-		this.validateAvailableCash(side, price, size, previousOrders);
-		this.validateAvailableQuantityStocks(side, size, previousOrders);
-	}
-
-	private validateAvailableCash(
-		side: OrderSide,
-		price: number,
-		size: number,
-		orders: Order[],
-	): void {
-		if (side === OrderSide.BUY || side === OrderSide.CASH_OUT) {
-			const availableCash =
-				this.portfolioService.calculateAvailableCash(orders);
-			if (availableCash < price * size)
-				throw new ConflictException(
-					'Insufficient funds to process the transaction',
-				);
-		}
-	}
-
-	private validateAvailableQuantityStocks(
-		side: OrderSide,
-		size: number,
-		orders: Order[],
-	): boolean {
-		if (side === OrderSide.SELL) {
-			const availableStocks =
-				this.portfolioService.calculateQuantityAvailableStocks(orders);
-			if (availableStocks < size) {
-				throw new ConflictException(
-					'Insufficient stocks to process the transaction',
-				);
-			}
-		}
-
-		return true;
-	}
-
-	private validateAmountAndSize(
-		type: OrderType,
-		amount?: number,
-		size?: number,
-	): void {
-		if (amount && type !== OrderType.MARKET) {
-			throw new BadRequestException(
-				'Amount is only allowed for MARKET orders',
-			);
-		}
-
-		if (
-			(amount === undefined && size === undefined) ||
-			(amount !== undefined && size !== undefined)
-		) {
-			throw new BadRequestException(
-				'You must provide either amount or size, but not both',
-			);
-		}
-	}
-
 	private calculateFinalSize(
 		amount?: number,
 		size?: number,
 		price?: number,
-		orderSide?: OrderSide,
 	): number {
-		if (
-			(orderSide === OrderSide.CASH_IN ||
-				orderSide === OrderSide.CASH_OUT) &&
-			!size
-		)
-			throw new BadRequestException(
-				'Size is required for cash operations',
-			);
-
 		if (size !== undefined) return size;
 		if (amount !== undefined && price !== undefined) {
 			const computedSize = Math.floor(amount / price);
@@ -206,31 +124,38 @@ export class CreateOrderUseCase {
 		return price ?? 0;
 	}
 
-	private async getAndValidateInstrument(
-		instrumentId: number,
+	private async rejectAndThrowOrder(
+		instrument: Instrument,
+		userId: number,
+		size: number,
+		price: number,
+		type: OrderType,
 		side: OrderSide,
-	): Promise<Instrument> {
+		error: unknown,
+	): Promise<never> {
+		const rejectedOrder = new Order({
+			instrument,
+			userId,
+			size,
+			price,
+			type,
+			side,
+			datetime: new Date(),
+		});
+
+		rejectedOrder.rejectOrder();
+		await this.orderRepository.save(rejectedOrder);
+
+		throw error;
+	}
+
+	private async getInstrumentById(instrumentId: number): Promise<Instrument> {
 		const instrument =
 			await this.instrumentRepository.getById(instrumentId);
-
-		if (!instrument) {
+		if (!instrument)
 			throw new ConflictException(
 				`Instrument with id ${instrumentId} not found`,
 			);
-		}
-
-		if (side === OrderSide.CASH_IN || side === OrderSide.CASH_OUT) {
-			if (instrument.getType() !== InstrumentType.CURRENCY) {
-				throw new BadRequestException(
-					'Only currency instruments can be used for cash operations',
-				);
-			}
-		} else if (instrument.getType() !== InstrumentType.STOCK) {
-			throw new BadRequestException(
-				'Only stock instruments can be used for stock operations',
-			);
-		}
-
 		return instrument;
 	}
 

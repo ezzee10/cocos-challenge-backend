@@ -15,6 +15,7 @@ import { Order } from 'src/domain/models/order.model';
 import { MarketData } from 'src/domain/models/market-data.model';
 import { PortfolioService } from 'src/domain/services/portfolio.service';
 import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
+import { OrderValidationService } from 'src/domain/services/order-validation.service';
 
 describe('OrderController', () => {
 	let app: INestApplication;
@@ -49,25 +50,31 @@ describe('OrderController', () => {
 				},
 				{ provide: PortfolioService, useClass: PortfolioService },
 				{
+					provide: OrderValidationService,
+					useFactory: (portfolioService: PortfolioService) =>
+						new OrderValidationService(portfolioService),
+					inject: [PortfolioService],
+				},
+				{
 					provide: CreateOrderUseCase,
 					useFactory: (
 						orderRepository: typeof mockOrderRepository,
 						marketDataRepository: typeof mockMarketDataRepository,
 						instrumentRepository: typeof mockInstrumentRepository,
-						portfolioService: PortfolioService,
+						orderValidationService: OrderValidationService,
 					) => {
 						return new CreateOrderUseCase(
 							orderRepository,
 							marketDataRepository,
 							instrumentRepository,
-							portfolioService,
+							orderValidationService,
 						);
 					},
 					inject: [
 						'IOrderRepository',
 						'IMarketRepository',
 						'IInstrumentRepository',
-						PortfolioService,
+						OrderValidationService,
 					],
 				},
 			],
