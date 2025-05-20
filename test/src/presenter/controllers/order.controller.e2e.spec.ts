@@ -31,6 +31,7 @@ describe('OrderController', () => {
 
 	const mockInstrumentRepository: jest.Mocked<IInstrumentRepository> = {
 		getById: jest.fn(),
+		searchInstrumentsByTicketOrName: jest.fn(),
 	};
 
 	beforeEach(async () => {

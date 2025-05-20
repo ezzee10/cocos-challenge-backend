@@ -1,11 +1,20 @@
+import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
 import { OrderSide } from 'src/domain/enums/order-side.enum';
 import { OrderStatus } from 'src/domain/enums/order-status.enum';
 import { OrderType } from 'src/domain/enums/order-type.enum';
+import { Instrument } from 'src/domain/models/instrument.model';
 import { Order } from 'src/domain/models/order.model';
 
 describe('Order', () => {
+	const validInstrumentCash = new Instrument({
+		id: 66,
+		ticker: 'ARS',
+		name: 'PESOS',
+		type: InstrumentType.CURRENCY,
+	});
+
 	const validProps = {
-		instrumentId: 1,
+		instrument: validInstrumentCash,
 		userId: 1,
 		size: 10,
 		price: 100,
@@ -19,7 +28,7 @@ describe('Order', () => {
 			it('Given valid order props, when creating an Order, then it should instantiate with correct status and call validations', () => {
 				const order = new Order(validProps);
 
-				expect(order.getInstrumentId()).toBe(validProps.instrumentId);
+				expect(order.getInstrument()).toBe(validProps.instrument);
 				expect(order.getUserId()).toBe(validProps.userId);
 				expect(order.getSize()).toBe(validProps.size);
 				expect(order.getPrice()).toBe(validProps.price);

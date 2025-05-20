@@ -14,6 +14,7 @@ import { Instrument } from 'src/domain/models/instrument.model';
 import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
 import { OrderStatus } from 'src/domain/enums/order-status.enum';
 import { PortfolioService } from 'src/domain/services/portfolio.service';
+import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
 
 @Injectable()
 export class CreateOrderUseCase {
@@ -37,7 +38,10 @@ export class CreateOrderUseCase {
 
 		this.validateAmountAndSize(type, amount, inputSize);
 
-		const instrument = await this.getInstrument(instrumentId);
+		const instrument = await this.getAndValidateInstrument(
+			instrumentId,
+			side,
+		);
 
 		const finalPrice = await this.calculateFinalPrice(
 			type,
@@ -202,13 +206,28 @@ export class CreateOrderUseCase {
 		return price ?? 0;
 	}
 
-	private async getInstrument(instrumentId: number): Promise<Instrument> {
+	private async getAndValidateInstrument(
+		instrumentId: number,
+		side: OrderSide,
+	): Promise<Instrument> {
 		const instrument =
 			await this.instrumentRepository.getById(instrumentId);
 
 		if (!instrument) {
 			throw new ConflictException(
 				`Instrument with id ${instrumentId} not found`,
+			);
+		}
+
+		if (side === OrderSide.CASH_IN || side === OrderSide.CASH_OUT) {
+			if (instrument.getType() !== InstrumentType.CURRENCY) {
+				throw new BadRequestException(
+					'Only currency instruments can be used for cash operations',
+				);
+			}
+		} else if (instrument.getType() !== InstrumentType.STOCK) {
+			throw new BadRequestException(
+				'Only stock instruments can be used for stock operations',
 			);
 		}
 
