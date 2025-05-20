@@ -40,7 +40,7 @@ import { OrderValidationService } from './domain/services/order-validation.servi
 					MarketDataEntity,
 				],
 				synchronize: false,
-				ssl: true,
+				ssl: process.env.DB_SSL === 'true',
 			}),
 		}),
 		TypeOrmModule.forFeature([

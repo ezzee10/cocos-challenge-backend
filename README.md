@@ -27,6 +27,7 @@ DB_PORT=
 DB_USERNAME=
 DB_PASSWORD=
 DB_NAME=
+DB_SSL=false ## Important: MUST BE 'true' FOR DEVELOPMENT
 ```
 
 ### 🔁 Local Mode (with Docker and `.env.local`)
