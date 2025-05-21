@@ -65,7 +65,7 @@ A Postman collection is included for tests endpoints.
 
 **The folder is in the root directory and is called "collections". It contains the environment variables and the endpoint collection.**
 
-# 📚 API Available Endpoints Documentation
+## 📚 API Endpoints Documentation
 
 ---
 
@@ -80,7 +80,6 @@ Creates a new order with the following JSON payload:
 	"size": 2,
 	"side": "BUY",
 	"price": 10,
-	//"amount": 100,
 	"type": "MARKET"
 }
 ```
