@@ -26,4 +26,16 @@ export function validateNonEmptyString(value: string, fieldName: string) {
 	}
 }
 
+export function validateInstanceOf(
+	value: any,
+	classType: { new (...args: any[]): any },
+	fieldName: string,
+) {
+	if (!(value instanceof classType)) {
+		throw new Error(
+			`${fieldName} must be an instance of ${classType.name}`,
+		);
+	}
+}
+
 export type Optional<T> = T | null;

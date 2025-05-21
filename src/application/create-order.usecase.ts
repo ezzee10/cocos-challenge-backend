@@ -6,12 +6,15 @@ import { MarketData } from 'src/domain/models/market-data.model';
 import { CreateOrderDto } from 'src/presenter/dto/create-order.dto';
 import { IOrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
+import { Instrument } from 'src/domain/models/instrument.model';
+import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
 
 @Injectable()
 export class CreateOrderUseCase {
 	constructor(
 		private readonly orderRepository: IOrderRepository,
 		private readonly marketDataRepository: IMarketRepository,
+		private readonly instrumentRepository: IInstrumentRepository,
 	) {}
 
 	async execute(createOrderDto: CreateOrderDto): Promise<Order> {
@@ -25,8 +28,10 @@ export class CreateOrderUseCase {
 			price,
 		);
 
+		const instrument = await this.getInstrument(instrumentId);
+
 		const order = new Order({
-			instrumentId,
+			instrument,
 			userId,
 			size,
 			price: finalPrice,
@@ -54,6 +59,19 @@ export class CreateOrderUseCase {
 		}
 
 		return price ?? 0;
+	}
+
+	private async getInstrument(instrumentId: number): Promise<Instrument> {
+		const instrument =
+			await this.instrumentRepository.getById(instrumentId);
+
+		if (!instrument) {
+			throw new ConflictException(
+				`Instrument with id ${instrumentId} not found`,
+			);
+		}
+
+		return instrument;
 	}
 
 	private async getMarketData(instrumentId: number): Promise<MarketData> {

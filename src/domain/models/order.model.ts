@@ -1,14 +1,16 @@
 import {
 	validateDatetime,
 	validateEnum,
+	validateInstanceOf,
 	validatePositiveInteger,
 } from 'src/utils/utils';
 import { OrderSide } from '../enums/order-side.enum';
 import { OrderStatus } from '../enums/order-status.enum';
 import { OrderType } from '../enums/order-type.enum';
+import { Instrument } from './instrument.model';
 
 interface OrderProps {
-	instrumentId: number;
+	instrument: Instrument;
 	userId: number;
 	size: number;
 	price: number;
@@ -18,7 +20,7 @@ interface OrderProps {
 }
 
 export class Order {
-	private instrumentId!: number;
+	private instrument!: Instrument;
 	private userId!: number;
 	private size!: number;
 	private price!: number;
@@ -28,7 +30,7 @@ export class Order {
 	private datetime!: Date;
 
 	constructor(props: OrderProps) {
-		this.instrumentId = props.instrumentId;
+		this.instrument = props.instrument;
 		this.userId = props.userId;
 		this.size = props.size;
 		this.price = props.price;
@@ -41,7 +43,7 @@ export class Order {
 	}
 
 	private validate() {
-		validatePositiveInteger(this.instrumentId, 'Instrument ID');
+		validateInstanceOf(this.instrument, Instrument, 'Instrument');
 		validatePositiveInteger(this.userId, 'User ID');
 		validateEnum(this.type, OrderType, 'Order type');
 		validateEnum(this.side, OrderSide, 'Order side');
@@ -93,8 +95,8 @@ export class Order {
 		return this.type;
 	}
 
-	getInstrumentId(): number {
-		return this.instrumentId;
+	getInstrument(): Instrument {
+		return this.instrument;
 	}
 
 	getUserId(): number {
