@@ -19,7 +19,7 @@ $ npm install
 
 ## 🌍 Environment Variables
 
-You can find an example file in `.env.example`:
+You can find an example file in `.env.example` (.env.local is provided already configured for local)
 
 ```env
 DB_HOST=
@@ -29,6 +29,8 @@ DB_PASSWORD=
 DB_NAME=
 DB_SSL=false ## Important: MUST BE 'true' FOR DEVELOPMENT
 ```
+
+.env.local is provided already configured for local
 
 ### 🔁 Local Mode (with Docker and `.env.local`)
 
@@ -145,3 +147,18 @@ Retrieves a summary of the user's portfolio including:
 
 **Example:**
 `GET /api/portfolio/1`
+
+## 4. PATCH `/api/orders/:orderId/cancel`
+
+Cancels an existing order by its ID.
+
+- Only orders that have status `NEW` **and** are of type `LIMIT` can be canceled.
+- If the order does not exist, or if it is not in `NEW` status or not a `LIMIT` order, the API will return an error.
+- Upon successful cancellation, the order status is updated to `CANCELLED`.
+- This endpoint allows users to withdraw open limit orders before execution.
+
+### Example request
+
+```http
+PATCH /api/orders/123/cancel
+```
