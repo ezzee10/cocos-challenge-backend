@@ -18,6 +18,7 @@ import { CalculatePositionsByOrdersUseCase } from './application/usecases/calcul
 import { PortfolioController } from './presenter/controllers/portfolio.controller';
 import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfolio.usecase';
 import { OrderValidationService } from './domain/services/order-validation.service';
+import { CancelOrderUseCase } from './application/usecases/cancel-order.usecase';
 
 @Module({
 	imports: [
@@ -119,6 +120,13 @@ import { OrderValidationService } from './domain/services/order-validation.servi
 				return new OrderValidationService(portfolioService);
 			},
 			inject: [PortfolioService],
+		},
+		{
+			provide: CancelOrderUseCase,
+			useFactory: (orderRepository: OrderRepository) => {
+				return new CancelOrderUseCase(orderRepository);
+			},
+			inject: [OrderRepository],
 		},
 	],
 })

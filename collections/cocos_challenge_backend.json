@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\r\n  \"instrumentId\": 53,\r\n  \"userId\": 1,\r\n  \"size\": 1,\r\n  \"side\": \"BUY\",\r\n  \"price\": 10,\r\n  //\"amount\": 100,\r\n  \"type\": \"MARKET\"\r\n}\r\n",
+					"raw": "{\r\n  \"instrumentId\": 53,\r\n  \"userId\": 1,\r\n  \"size\": 2,\r\n  \"side\": \"BUY\",\r\n  \"price\": 10,\r\n  //\"amount\": 100,\r\n  \"type\": \"MARKET\"\r\n}\r\n",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -76,6 +76,26 @@
 						"api",
 						"portfolio",
 						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Cancel order",
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/orders/3/cancel",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"orders",
+						"3",
+						"cancel"
 					]
 				}
 			},

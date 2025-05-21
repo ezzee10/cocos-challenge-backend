@@ -65,10 +65,84 @@ A Postman collection is included for tests endpoints.
 
 **The folder is in the root directory and is called "collections". It contains the environment variables and the endpoint collection.**
 
-## 📚 Available Endpoints
+# 📚 API Available Endpoints Documentation
 
-| Method | Endpoint                                    | Description                              |
-| ------ | ------------------------------------------- | ---------------------------------------- |
-| POST   | `/api/orders`                               | Create a buy/sell/cash_in/cash_out order |
-| GET    | `/api/instruments/search?name=''&ticker=''` | Search financial instruments             |
-| GET    | `/api/portfolio/:userId`                    | Get user's portfolio                     |
+---
+
+## 1. POST `/api/orders`
+
+Creates a new order with the following JSON payload:
+
+```json
+{
+	"instrumentId": 53,
+	"userId": 1,
+	"size": 2,
+	"side": "BUY",
+	"price": 10,
+	//"amount": 100,
+	"type": "MARKET"
+}
+```
+
+### Field explanations:
+
+- **userId**:  
+  The ID of the user placing the order.
+
+- **instrumentId**:  
+  The ID of the financial instrument (stock or currency).
+
+- **side**:  
+  The type of order operation:
+
+    - `BUY` or `SELL` for stock orders,
+    - `CASH_IN` or `CASH_OUT` for cash deposit/withdrawal operations.
+
+- **type**:  
+  Order execution type:
+
+    - `MARKET` orders execute immediately at the latest market price.
+    - `LIMIT` orders are placed with a price limit and remain open until matched or canceled.
+
+- **size**:  
+  Number of shares/units the user wants to buy or sell.
+
+- **price** (required for `LIMIT` orders):  
+  The limit price per share at which the order should be executed.
+
+- **amount** (optional):  
+  Total investment amount in pesos (ARS).
+    - Only allowed for `MARKET` orders of type `BUY`.
+    - If provided, the system calculates the maximum whole number of shares that can be purchased with this amount; fractional shares are not allowed.
+    - Cannot be combined with `size` in the same order.
+
+###
+
+---
+
+## 2. GET `/api/search?`
+
+Search for financial instruments by:
+
+The endpoint returns a list of instruments matching the search query (ticker or instrument or both)
+
+**Example:**
+`GET /api/instruments?name=''&ticker=''`
+
+---
+
+## 3. GET `/api/portfolio/:userId`
+
+Retrieves a summary of the user's portfolio including:
+
+- Available cash balance
+- Total portfolio value (cash plus all asset holdings)
+- Detailed list of asset positions, each including:
+    - Instrument
+    - Quantity of assets
+    - Total value of the position
+    - Performance percentage
+
+**Example:**
+`GET /api/portfolio/1`

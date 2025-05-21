@@ -10,16 +10,19 @@ import { OrderType } from '../enums/order-type.enum';
 import { Instrument } from './instrument.model';
 
 interface OrderProps {
+	id?: number;
 	instrument: Instrument;
 	userId: number;
 	size: number;
 	price: number;
 	type: OrderType;
 	side: OrderSide;
+	status: OrderStatus;
 	datetime: Date;
 }
 
 export class Order {
+	private id?: number;
 	private instrument!: Instrument;
 	private userId!: number;
 	private size!: number;
@@ -30,6 +33,7 @@ export class Order {
 	private datetime!: Date;
 
 	constructor(props: OrderProps) {
+		this.id = props.id;
 		this.instrument = props.instrument;
 		this.userId = props.userId;
 		this.size = props.size;
@@ -75,9 +79,12 @@ export class Order {
 	}
 
 	public cancelOrder(): void {
-		if (this.status !== OrderStatus.NEW) {
+		const isCancelable =
+			this.status === OrderStatus.NEW && this.type === OrderType.LIMIT;
+
+		if (!isCancelable) {
 			throw new Error(
-				`Only orders in ${OrderStatus.NEW} status can be cancelled.`,
+				`Only orders in ${OrderStatus.NEW} status and of type ${OrderType.LIMIT} can be canceled`,
 			);
 		}
 		this.status = OrderStatus.CANCELLED;
@@ -117,5 +124,9 @@ export class Order {
 
 	getDatetime(): Date {
 		return this.datetime;
+	}
+
+	getId(): number | undefined {
+		return this.id;
 	}
 }

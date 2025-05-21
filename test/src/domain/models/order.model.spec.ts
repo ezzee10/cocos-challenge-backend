@@ -20,6 +20,7 @@ describe('Order', () => {
 		price: 100,
 		type: OrderType.LIMIT,
 		side: OrderSide.BUY,
+		status: OrderStatus.NEW,
 		datetime: new Date('2023-01-01T00:00:00Z'),
 	};
 
@@ -86,7 +87,7 @@ describe('Order', () => {
 				expect(order.getStatus()).toBe(OrderStatus.FILLED);
 
 				expect(() => order.cancelOrder()).toThrow(
-					`Only orders in ${OrderStatus.NEW} status can be cancelled.`,
+					`Only orders in ${OrderStatus.NEW} status and of type ${OrderType.LIMIT} can be canceled`,
 				);
 			});
 		});

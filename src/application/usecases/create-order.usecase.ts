@@ -50,6 +50,8 @@ export class CreateOrderUseCase {
 
 		const size = this.calculateFinalSize(amount, inputSize, finalPrice);
 
+		const status = this.resolveStatusByType(type);
+
 		const previousOrders = await this.getPreviousOrders(
 			userId,
 			OrderStatus.FILLED,
@@ -70,6 +72,7 @@ export class CreateOrderUseCase {
 				finalPrice,
 				type,
 				side,
+				status,
 				error,
 			);
 		}
@@ -81,6 +84,7 @@ export class CreateOrderUseCase {
 			price: finalPrice,
 			type,
 			side,
+			status,
 			datetime: new Date(),
 		});
 
@@ -104,6 +108,20 @@ export class CreateOrderUseCase {
 		}
 
 		throw new BadRequestException('Data is missing to calculate size');
+	}
+
+	private resolveStatusByType(type: OrderType): OrderStatus {
+		if (type === OrderType.LIMIT) {
+			return OrderStatus.NEW;
+		}
+
+		if (type === OrderType.MARKET) {
+			return OrderStatus.FILLED;
+		}
+
+		throw new BadRequestException(
+			'Invalid order type. Cannot determine status.',
+		);
 	}
 
 	private async calculateFinalPrice(
@@ -131,6 +149,7 @@ export class CreateOrderUseCase {
 		price: number,
 		type: OrderType,
 		side: OrderSide,
+		status: OrderStatus,
 		error: unknown,
 	): Promise<never> {
 		const rejectedOrder = new Order({
@@ -140,6 +159,7 @@ export class CreateOrderUseCase {
 			price,
 			type,
 			side,
+			status,
 			datetime: new Date(),
 		});
 

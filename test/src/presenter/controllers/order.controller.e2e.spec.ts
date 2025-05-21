@@ -16,6 +16,7 @@ import { MarketData } from 'src/domain/models/market-data.model';
 import { PortfolioService } from 'src/domain/services/portfolio.service';
 import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
 import { OrderValidationService } from 'src/domain/services/order-validation.service';
+import { CancelOrderUseCase } from 'src/application/usecases/cancel-order.usecase';
 
 describe('OrderController', () => {
 	let app: INestApplication;
@@ -24,6 +25,7 @@ describe('OrderController', () => {
 	const mockOrderRepository: jest.Mocked<IOrderRepository> = {
 		save: jest.fn(),
 		getOrdersByUserIdAndStatus: jest.fn(),
+		findById: jest.fn(),
 	};
 
 	const mockMarketDataRepository: jest.Mocked<IMarketRepository> = {
@@ -77,6 +79,15 @@ describe('OrderController', () => {
 						OrderValidationService,
 					],
 				},
+				{
+					provide: CancelOrderUseCase,
+					useFactory: (
+						orderRepository: typeof mockOrderRepository,
+					) => {
+						return new CancelOrderUseCase(orderRepository);
+					},
+					inject: ['IOrderRepository'],
+				},
 			],
 		}).compile();
 
@@ -117,6 +128,7 @@ describe('OrderController', () => {
 			side: OrderSide.CASH_IN,
 			size: 500,
 			price: 1,
+			status: OrderStatus.FILLED,
 			datetime: new Date('2023-09-01T00:00:00Z'),
 		}),
 		new Order({
@@ -126,6 +138,7 @@ describe('OrderController', () => {
 			side: OrderSide.BUY,
 			size: 2,
 			price: 50,
+			status: OrderStatus.FILLED,
 			datetime: new Date('2023-09-01T00:00:00Z'),
 		}),
 	];

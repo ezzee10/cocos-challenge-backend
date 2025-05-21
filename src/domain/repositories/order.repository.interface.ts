@@ -1,3 +1,4 @@
+import { Optional } from 'src/utils/utils';
 import { Order } from '../models/order.model';
 
 export interface IOrderRepository {
@@ -6,4 +7,5 @@ export interface IOrderRepository {
 		userId: number,
 		status: string,
 	): Promise<Order[]>;
+	findById(orderId: string): Promise<Optional<Order>>;
 }

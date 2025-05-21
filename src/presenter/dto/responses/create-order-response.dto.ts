@@ -4,6 +4,7 @@ import { OrderType } from 'src/domain/enums/order-type.enum';
 import { Order } from 'src/domain/models/order.model';
 
 export interface CreateOrderResponseDto {
+	id: number;
 	userId: number;
 	instrumentId: number;
 	size: number;
@@ -17,6 +18,7 @@ export function mapOrderToCreateOrderResponseDto(
 	order: Order,
 ): CreateOrderResponseDto {
 	return {
+		id: order.getId() as number,
 		userId: order.getUserId(),
 		instrumentId: order.getInstrument().getId(),
 		size: order.getSize(),

@@ -9,6 +9,7 @@ import { InstrumentEntity } from '../entities/instrument.entity';
 import { UserEntity } from '../entities/user.entity';
 import { OrderStatus } from 'src/domain/enums/order-status.enum';
 import { Instrument } from 'src/domain/models/instrument.model';
+import { Optional } from 'src/utils/utils';
 
 @Injectable()
 export class OrderRepository implements IOrderRepository {
@@ -19,6 +20,7 @@ export class OrderRepository implements IOrderRepository {
 
 	async save(order: Order): Promise<Order> {
 		const orderEntity = this.mapOrderToOrderEntity(order);
+
 		await this.orderRepository.save(orderEntity);
 		return this.mapOrderEntityToOrder(orderEntity);
 	}
@@ -37,8 +39,18 @@ export class OrderRepository implements IOrderRepository {
 		);
 	}
 
+	async findById(orderId: string): Promise<Optional<Order>> {
+		const orderEntity = await this.orderRepository.findOne({
+			where: { id: Number(orderId) },
+			relations: ['instrument', 'user'],
+		});
+		return orderEntity ? this.mapOrderEntityToOrder(orderEntity) : null;
+	}
+
 	private mapOrderToOrderEntity(order: Order): OrderEntity {
 		const entity = new OrderEntity();
+
+		entity.id = order.getId() as number;
 
 		entity.instrument = this.mapInstrumentToInstrumentEntity(
 			order.getInstrument(),
@@ -56,6 +68,7 @@ export class OrderRepository implements IOrderRepository {
 
 	private mapOrderEntityToOrder(orderEntity: OrderEntity): Order {
 		return new Order({
+			id: orderEntity.id,
 			instrument: this.mapInstrumentEntityToInstrument(
 				orderEntity.instrument,
 			),
@@ -64,6 +77,7 @@ export class OrderRepository implements IOrderRepository {
 			price: orderEntity.price,
 			side: orderEntity.side,
 			type: orderEntity.type,
+			status: orderEntity.status,
 			datetime: orderEntity.datetime,
 		});
 	}
