@@ -61,7 +61,9 @@ $ npm run test:e2e
 
 ## 📬 Postman Collection
 
-A Postman collection is included with sample requests for the main endpoints.
+A Postman collection is included for tests endpoints.
+
+**The folder is in the root directory and is called "collections". It contains the environment variables and the endpoint collection.**
 
 ## 📚 Available Endpoints
 

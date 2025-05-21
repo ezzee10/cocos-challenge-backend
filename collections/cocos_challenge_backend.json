@@ -1,0 +1,85 @@
+{
+	"info": {
+		"_postman_id": "4b2dc7e6-0175-4795-81b4-178678f1a29c",
+		"name": "Cocos challenge backend",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "18548524"
+	},
+	"item": [
+		{
+			"name": "Create a new order",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"instrumentId\": 53,\r\n  \"userId\": 1,\r\n  \"size\": 1,\r\n  \"side\": \"BUY\",\r\n  \"price\": 10,\r\n  //\"amount\": 100,\r\n  \"type\": \"MARKET\"\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{host}}/api/orders",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"orders"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Search instruments",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/instruments/search?name=Dycasa S.A.&ticker=DYCA",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"instruments",
+						"search"
+					],
+					"query": [
+						{
+							"key": "name",
+							"value": "Dycasa S.A."
+						},
+						{
+							"key": "ticker",
+							"value": "DYCA"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get porfolio by user",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{host}}/api/portfolio/1",
+					"host": [
+						"{{host}}"
+					],
+					"path": [
+						"api",
+						"portfolio",
+						"1"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

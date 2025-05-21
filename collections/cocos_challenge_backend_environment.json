@@ -1,0 +1,15 @@
+{
+	"id": "750db03a-d1c1-45c3-93a0-f71e72607a2d",
+	"name": "Cocos challenge backend",
+	"values": [
+		{
+			"key": "host",
+			"value": "http://localhost:3000",
+			"type": "default",
+			"enabled": true
+		}
+	],
+	"_postman_variable_scope": "environment",
+	"_postman_exported_at": "2025-05-21T17:43:23.222Z",
+	"_postman_exported_using": "Postman/11.46.3"
+}
