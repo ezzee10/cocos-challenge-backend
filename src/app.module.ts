@@ -1,24 +1,36 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+
 import { OrderEntity } from './infrastructure/database/entities/order.entity';
 import { UserEntity } from './infrastructure/database/entities/user.entity';
 import { InstrumentEntity } from './infrastructure/database/entities/instrument.entity';
-import { OrderController } from './presenter/controllers/order.controller';
-import { CreateOrderUseCase } from './application/usecases/create-order.usecase';
 import { MarketDataEntity } from './infrastructure/database/entities/market-data.entity';
-import { OrderRepository } from './infrastructure/database/repositories/order.repository';
-import { MarketDataRepository } from './infrastructure/database/repositories/market-data.repository';
-import { IInstrumentRepository } from './domain/repositories/instrument.repository.interface';
-import { InstrumentRepository } from './infrastructure/database/repositories/instrument.repository';
-import { PortfolioService } from './domain/services/portfolio.service';
+
+import { OrderController } from './presenter/controllers/order.controller';
 import { InstrumentController } from './presenter/controllers/instrument.controller';
+import { PortfolioController } from './presenter/controllers/portfolio.controller';
+
+import { CreateOrderUseCase } from './application/usecases/create-order.usecase';
+import { CancelOrderUseCase } from './application/usecases/cancel-order.usecase';
 import { SearchInstrumentsUseCase } from './application/usecases/search-instruments.usecase';
 import { CalculatePositionsByOrdersUseCase } from './application/usecases/calculate-positions.usecase';
-import { PortfolioController } from './presenter/controllers/portfolio.controller';
 import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfolio.usecase';
+
+import { OrderRepository } from './infrastructure/database/repositories/order.repository';
+import { MarketDataRepository } from './infrastructure/database/repositories/market-data.repository';
+import { InstrumentRepository } from './infrastructure/database/repositories/instrument.repository';
+
+import { PortfolioService } from './domain/services/portfolio.service';
 import { OrderValidationService } from './domain/services/order-validation.service';
-import { CancelOrderUseCase } from './application/usecases/cancel-order.usecase';
+import { OrderCreateStrategyFactory } from './domain/factories/create-order.factory';
+import { MarketBuyStrategy } from './domain/strategies/market-buy.strategy';
+import { MarketSellStrategy } from './domain/strategies/market-sell.strategy';
+import { CashOutStrategy } from './domain/strategies/cash.out.strategy';
+import { CashInStrategy } from './domain/strategies/cash-in.strategy';
+import { LimitBuyStrategy } from './domain/strategies/limit-buy.strategy';
+import { LimitSellStrategy } from './domain/strategies/limit-sell.strategy';
+import { IOrderRepository } from './domain/repositories/order.repository.interface';
 
 @Module({
 	imports: [
@@ -53,80 +65,85 @@ import { CancelOrderUseCase } from './application/usecases/cancel-order.usecase'
 	],
 	controllers: [OrderController, InstrumentController, PortfolioController],
 	providers: [
-		OrderRepository,
-		MarketDataRepository,
-		InstrumentRepository,
+		{ provide: 'IOrderRepository', useClass: OrderRepository },
+		{ provide: 'IMarketRepository', useClass: MarketDataRepository },
+		{ provide: 'IInstrumentRepository', useClass: InstrumentRepository },
 		PortfolioService,
 		OrderValidationService,
+		MarketBuyStrategy,
+		MarketSellStrategy,
+		CashOutStrategy,
+		CashInStrategy,
+		LimitBuyStrategy,
+		LimitSellStrategy,
 		{
-			provide: CreateOrderUseCase,
+			provide: OrderCreateStrategyFactory,
 			useFactory: (
-				orderRepository: OrderRepository,
-				marketDataRepository: MarketDataRepository,
-				instrumentRepository: IInstrumentRepository,
-				orderValidationService: OrderValidationService,
+				martketBuyStrategy: MarketBuyStrategy,
+				marketSellStrategy: MarketSellStrategy,
+				cashOutStrategy: CashOutStrategy,
+				cashInStrategy: CashInStrategy,
+				limitBuyStrategy: LimitBuyStrategy,
+				limitSellStrategy: LimitSellStrategy,
 			) =>
-				new CreateOrderUseCase(
-					orderRepository,
-					marketDataRepository,
-					instrumentRepository,
-					orderValidationService,
+				new OrderCreateStrategyFactory(
+					martketBuyStrategy,
+					marketSellStrategy,
+					cashOutStrategy,
+					cashInStrategy,
+					limitBuyStrategy,
+					limitSellStrategy,
 				),
 			inject: [
-				OrderRepository,
-				MarketDataRepository,
-				InstrumentRepository,
-				OrderValidationService,
+				MarketBuyStrategy,
+				MarketSellStrategy,
+				CashOutStrategy,
+				CashInStrategy,
+				LimitBuyStrategy,
+				LimitSellStrategy,
 			],
 		},
 		{
+			provide: CreateOrderUseCase,
+			useFactory: (strategyFactory: OrderCreateStrategyFactory) =>
+				new CreateOrderUseCase(strategyFactory),
+			inject: [OrderCreateStrategyFactory],
+		},
+		{
+			provide: CancelOrderUseCase,
+			useFactory: (orderRepository: IOrderRepository) =>
+				new CancelOrderUseCase(orderRepository),
+			inject: ['IOrderRepository'],
+		},
+		{
 			provide: SearchInstrumentsUseCase,
-			useFactory: (instrumentRepository: InstrumentRepository) => {
-				return new SearchInstrumentsUseCase(instrumentRepository);
-			},
-			inject: [InstrumentRepository],
+			useFactory: (instrumentRepository: InstrumentRepository) =>
+				new SearchInstrumentsUseCase(instrumentRepository),
+			inject: ['IInstrumentRepository'],
 		},
 		{
 			provide: CalculatePositionsByOrdersUseCase,
-			useFactory: (marketDataRepository: MarketDataRepository) => {
-				return new CalculatePositionsByOrdersUseCase(
-					marketDataRepository,
-				);
-			},
-			inject: [MarketDataRepository],
+			useFactory: (marketDataRepository: MarketDataRepository) =>
+				new CalculatePositionsByOrdersUseCase(marketDataRepository),
+			inject: ['IMarketRepository'],
 		},
 		{
 			provide: GetPortfolioByUserIdUseCase,
 			useFactory: (
 				orderRepository: OrderRepository,
-				calculatePositionsByOrdersUseCase: CalculatePositionsByOrdersUseCase,
+				calculatePositions: CalculatePositionsByOrdersUseCase,
 				portfolioService: PortfolioService,
-			) => {
-				return new GetPortfolioByUserIdUseCase(
+			) =>
+				new GetPortfolioByUserIdUseCase(
 					orderRepository,
-					calculatePositionsByOrdersUseCase,
+					calculatePositions,
 					portfolioService,
-				);
-			},
+				),
 			inject: [
-				OrderRepository,
+				'IOrderRepository',
 				CalculatePositionsByOrdersUseCase,
 				PortfolioService,
 			],
-		},
-		{
-			provide: OrderValidationService,
-			useFactory: (portfolioService: PortfolioService) => {
-				return new OrderValidationService(portfolioService);
-			},
-			inject: [PortfolioService],
-		},
-		{
-			provide: CancelOrderUseCase,
-			useFactory: (orderRepository: OrderRepository) => {
-				return new CancelOrderUseCase(orderRepository);
-			},
-			inject: [OrderRepository],
 		},
 	],
 })

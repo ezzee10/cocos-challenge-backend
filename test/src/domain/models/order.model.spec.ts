@@ -44,22 +44,12 @@ describe('Order', () => {
 					...validProps,
 					type: OrderType.MARKET,
 					price: 1,
+					status: OrderStatus.FILLED,
 				};
 
 				const order = new Order(props);
 
 				expect(order.getStatus()).toBe(OrderStatus.FILLED);
-			});
-
-			it('Given an invalid order type, when creating an Order, then it should throw an error', () => {
-				const props = {
-					...validProps,
-					type: 'INVALID_TYPE' as OrderType,
-				};
-
-				expect(() => new Order(props)).toThrow(
-					'Invalid order type. Cannot determine status.',
-				);
 			});
 
 			it('Given a LIMIT order with price <= 0 or is not defined, when creating an Order, then it should throw an error', () => {
@@ -82,7 +72,11 @@ describe('Order', () => {
 			});
 
 			it('Given an order NOT in NEW status, when cancelOrder is called, then it should throw an error', () => {
-				const props = { ...validProps, type: OrderType.MARKET };
+				const props = {
+					...validProps,
+					type: OrderType.MARKET,
+					status: OrderStatus.FILLED,
+				};
 				const order = new Order(props);
 				expect(order.getStatus()).toBe(OrderStatus.FILLED);
 

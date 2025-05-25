@@ -19,9 +19,10 @@ export class CreateOrderDto {
 	@IsPositive()
 	userId!: number;
 
+	@IsOptional()
 	@IsInt()
 	@Min(1)
-	size!: number;
+	size?: number;
 
 	@IsOptional()
 	@IsInt()

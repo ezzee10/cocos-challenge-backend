@@ -3,10 +3,16 @@ import { OrderStatus } from 'src/domain/enums/order-status.enum';
 import { IOrderRepository } from 'src/domain/repositories/order.repository.interface';
 import { PortfolioService } from 'src/domain/services/portfolio.service';
 import { CalculatePositionsByOrdersUseCase } from './calculate-positions.usecase';
+import { Inject } from '@nestjs/common';
 export class GetPortfolioByUserIdUseCase {
 	constructor(
+		@Inject('IOrderRepository')
 		private readonly orderRepository: IOrderRepository,
+
+		@Inject(CalculatePositionsByOrdersUseCase)
 		private readonly calculatePositionsByOrders: CalculatePositionsByOrdersUseCase,
+
+		@Inject(PortfolioService)
 		private readonly portfolioService: PortfolioService,
 	) {}
 

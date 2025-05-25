@@ -2,11 +2,14 @@ import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
 import { Order } from 'src/domain/models/order.model';
 import { Position } from 'src/domain/models/position.model';
 import { OrderSide } from 'src/domain/enums/order-side.enum';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, Inject } from '@nestjs/common';
 import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
 
 export class CalculatePositionsByOrdersUseCase {
-	constructor(private readonly marketDataRepository: IMarketRepository) {}
+	constructor(
+		@Inject('IMarketRepository')
+		private readonly marketDataRepository: IMarketRepository,
+	) {}
 
 	async execute(orders: Order[]): Promise<Position[]> {
 		const nonCurrencyOrders = orders.filter(

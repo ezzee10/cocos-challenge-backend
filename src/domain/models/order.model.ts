@@ -41,7 +41,7 @@ export class Order {
 		this.type = props.type;
 		this.side = props.side;
 		this.datetime = props.datetime;
-		this.status = this.resolveStatusByType(props.type);
+		this.status = props.status;
 
 		this.validate();
 	}
@@ -64,18 +64,6 @@ export class Order {
 				);
 			}
 		}
-	}
-
-	private resolveStatusByType(type: OrderType): OrderStatus {
-		if (type === OrderType.LIMIT) {
-			return OrderStatus.NEW;
-		}
-
-		if (type === OrderType.MARKET) {
-			return OrderStatus.FILLED;
-		}
-
-		throw new Error('Invalid order type. Cannot determine status.');
 	}
 
 	public cancelOrder(): void {

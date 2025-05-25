@@ -17,6 +17,14 @@ import { PortfolioService } from 'src/domain/services/portfolio.service';
 import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
 import { OrderValidationService } from 'src/domain/services/order-validation.service';
 import { CancelOrderUseCase } from 'src/application/usecases/cancel-order.usecase';
+import { MarketBuyStrategy } from 'src/domain/strategies/market-buy.strategy';
+import { MarketSellStrategy } from 'src/domain/strategies/market-sell.strategy';
+import { CashOutStrategy } from 'src/domain/strategies/cash.out.strategy';
+import { CashInStrategy } from 'src/domain/strategies/cash-in.strategy';
+import { LimitBuyStrategy } from 'src/domain/strategies/limit-buy.strategy';
+import { LimitSellStrategy } from 'src/domain/strategies/limit-sell.strategy';
+import { OrderCreateStrategyFactory } from 'src/domain/factories/create-order.factory';
+import { InstrumentRepository } from 'src/infrastructure/database/repositories/instrument.repository';
 
 describe('OrderController', () => {
 	let app: INestApplication;
@@ -50,7 +58,7 @@ describe('OrderController', () => {
 					provide: 'IInstrumentRepository',
 					useValue: mockInstrumentRepository,
 				},
-				{ provide: PortfolioService, useClass: PortfolioService },
+				PortfolioService,
 				{
 					provide: OrderValidationService,
 					useFactory: (portfolioService: PortfolioService) =>
@@ -58,34 +66,150 @@ describe('OrderController', () => {
 					inject: [PortfolioService],
 				},
 				{
-					provide: CreateOrderUseCase,
+					provide: MarketBuyStrategy,
 					useFactory: (
-						orderRepository: typeof mockOrderRepository,
-						marketDataRepository: typeof mockMarketDataRepository,
-						instrumentRepository: typeof mockInstrumentRepository,
-						orderValidationService: OrderValidationService,
-					) => {
-						return new CreateOrderUseCase(
+						orderRepository: IOrderRepository,
+						marketRepository: IMarketRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new MarketBuyStrategy(
 							orderRepository,
-							marketDataRepository,
+							marketRepository,
+							portfolioService,
 							instrumentRepository,
-							orderValidationService,
-						);
-					},
+						),
 					inject: [
 						'IOrderRepository',
 						'IMarketRepository',
+						PortfolioService,
 						'IInstrumentRepository',
-						OrderValidationService,
 					],
 				},
 				{
-					provide: CancelOrderUseCase,
+					provide: MarketSellStrategy,
 					useFactory: (
-						orderRepository: typeof mockOrderRepository,
-					) => {
-						return new CancelOrderUseCase(orderRepository);
-					},
+						orderRepository: IOrderRepository,
+						marketRepository: IMarketRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new MarketSellStrategy(
+							orderRepository,
+							marketRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						'IMarketRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: CashOutStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new CashOutStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: CashInStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new CashInStrategy(
+							orderRepository,
+							instrumentRepository,
+						),
+					inject: ['IOrderRepository', 'IInstrumentRepository'],
+				},
+				{
+					provide: LimitBuyStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new LimitBuyStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: LimitSellStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new LimitSellStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: OrderCreateStrategyFactory,
+					useFactory: (
+						marketBuyStrategy: MarketBuyStrategy,
+						marketSellStrategy: MarketSellStrategy,
+						cashOutStrategy: CashOutStrategy,
+						cashInStrategy: CashInStrategy,
+						limitBuyStrategy: LimitBuyStrategy,
+						limitSellStrategy: LimitSellStrategy,
+					) =>
+						new OrderCreateStrategyFactory(
+							marketBuyStrategy,
+							marketSellStrategy,
+							cashOutStrategy,
+							cashInStrategy,
+							limitBuyStrategy,
+							limitSellStrategy,
+						),
+					inject: [
+						MarketBuyStrategy,
+						MarketSellStrategy,
+						CashOutStrategy,
+						CashInStrategy,
+						LimitBuyStrategy,
+						LimitSellStrategy,
+					],
+				},
+				{
+					provide: CreateOrderUseCase,
+					useFactory: (strategyFactory: OrderCreateStrategyFactory) =>
+						new CreateOrderUseCase(strategyFactory),
+					inject: [OrderCreateStrategyFactory],
+				},
+				{
+					provide: CancelOrderUseCase,
+					useFactory: (orderRepository: IOrderRepository) =>
+						new CancelOrderUseCase(orderRepository),
 					inject: ['IOrderRepository'],
 				},
 			],
@@ -525,7 +649,7 @@ describe('OrderController', () => {
 
 		const responseExpected = {
 			error: 'Conflict',
-			message: 'Insufficient stocks to process the transaction',
+			message: 'Insufficient assets to process the transaction',
 			statusCode: HttpStatus.CONFLICT,
 		};
 		expect(response.status).toBe(HttpStatus.CONFLICT);
@@ -578,7 +702,7 @@ describe('OrderController', () => {
 
 		const responseExpected = {
 			error: 'Conflict',
-			message: `Market data not found for instrumentId ${payload.instrumentId}`,
+			message: `Market price not found for instrument with id ${payload.instrumentId}`,
 			statusCode: HttpStatus.CONFLICT,
 		};
 
