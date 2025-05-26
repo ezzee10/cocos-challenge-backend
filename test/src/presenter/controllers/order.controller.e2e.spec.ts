@@ -1,30 +1,39 @@
 import * as request from 'supertest';
 import { Server } from 'http';
+
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { OrderSide } from 'src/domain/enums/order-side.enum';
-import { OrderType } from 'src/domain/enums/order-type.enum';
-import { OrderController } from 'src/presenter/controllers/order.controller';
 import { Test, TestingModule } from '@nestjs/testing';
-import { IOrderRepository } from 'src/domain/repositories/order.repository.interface';
-import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
-import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
-import { OrderStatus } from 'src/domain/enums/order-status.enum';
-import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
-import { Instrument } from 'src/domain/models/instrument.model';
-import { Order } from 'src/domain/models/order.model';
-import { MarketData } from 'src/domain/models/market-data.model';
-import { PortfolioService } from 'src/domain/services/portfolio.service';
-import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
-import { OrderValidationService } from 'src/domain/services/order-validation.service';
-import { CancelOrderUseCase } from 'src/application/usecases/cancel-order.usecase';
-import { MarketBuyStrategy } from 'src/domain/strategies/market-buy.strategy';
-import { MarketSellStrategy } from 'src/domain/strategies/market-sell.strategy';
-import { CashOutStrategy } from 'src/domain/strategies/cash.out.strategy';
-import { CashInStrategy } from 'src/domain/strategies/cash-in.strategy';
-import { LimitBuyStrategy } from 'src/domain/strategies/limit-buy.strategy';
-import { LimitSellStrategy } from 'src/domain/strategies/limit-sell.strategy';
-import { OrderCreateStrategyFactory } from 'src/domain/factories/create-order.factory';
-import { InstrumentRepository } from 'src/infrastructure/database/repositories/instrument.repository';
+
+import { OrderSide } from 'src/orders/domain/enums/order-side.enum';
+import { OrderType } from 'src/orders/domain/enums/order-type.enum';
+import { OrderStatus } from 'src/orders/domain/enums/order-status.enum';
+import { InstrumentType } from 'src/instruments/domain/enums/instrument-type.enum';
+
+import { IOrderRepository } from 'src/orders/domain/repositories/order.repository.interface';
+import { IMarketRepository } from 'src/market/domain/repositories/market-data.repository.interface';
+import { IInstrumentRepository } from 'src/instruments/domain/repositories/instrument.repository.interface';
+
+import { Order } from 'src/orders/domain/models/order.model';
+import { MarketData } from 'src/market/domain/models/market-data.model';
+import { Instrument } from 'src/instruments/domain/models/instrument.model';
+
+import { InstrumentRepository } from 'src/instruments/infrastructure/database/repositories/instrument.repository';
+
+import { PortfolioService } from 'src/portfolio/domain/services/portfolio.service';
+
+import { MarketBuyStrategy } from 'src/orders/domain/strategies/market-buy.strategy';
+import { MarketSellStrategy } from 'src/orders/domain/strategies/market-sell.strategy';
+import { CashOutStrategy } from 'src/orders/domain/strategies/cash.out.strategy';
+import { CashInStrategy } from 'src/orders/domain/strategies/cash-in.strategy';
+import { LimitBuyStrategy } from 'src/orders/domain/strategies/limit-buy.strategy';
+import { LimitSellStrategy } from 'src/orders/domain/strategies/limit-sell.strategy';
+
+import { OrderCreateStrategyFactory } from 'src/orders/domain/factories/create-order.factory';
+
+import { CreateOrderUseCase } from 'src/orders/application/usecases/create-order.usecase';
+import { CancelOrderUseCase } from 'src/orders/application/usecases/cancel-order.usecase';
+
+import { OrderController } from 'src/orders/presenter/controllers/order.controller';
 
 describe('OrderController', () => {
 	let app: INestApplication;
@@ -59,12 +68,6 @@ describe('OrderController', () => {
 					useValue: mockInstrumentRepository,
 				},
 				PortfolioService,
-				{
-					provide: OrderValidationService,
-					useFactory: (portfolioService: PortfolioService) =>
-						new OrderValidationService(portfolioService),
-					inject: [PortfolioService],
-				},
 				{
 					provide: MarketBuyStrategy,
 					useFactory: (
