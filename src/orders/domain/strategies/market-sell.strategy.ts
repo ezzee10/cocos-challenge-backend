@@ -35,62 +35,49 @@ export class MarketSellStrategy implements OrderCreationStrategy {
 
 		this.validateSize(size);
 
+		const instrument = await this.getInstrumentById(instrumentId);
+
 		const price = await this.getPrice(instrumentId);
 
 		const previousOrders = await this.getPreviousOrders(userId);
 
-		const instrument = await this.getInstrumentById(instrumentId);
+		const currentAssetsQuantity =
+			this.portfolioService.calculateQuantityAvailableStocks(
+				previousOrders,
+			);
 
-		try {
-			this.validateAssets(size, previousOrders);
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.FILLED,
-				datetime: new Date(),
-			});
+		const hasSufficientAssets = currentAssetsQuantity >= size;
 
-			await this.orderRepository.save(order);
+		const status = hasSufficientAssets
+			? OrderStatus.FILLED
+			: OrderStatus.REJECTED;
 
-			return order;
-		} catch (error) {
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.REJECTED,
-				datetime: new Date(),
-			});
+		const order = new Order({
+			instrument,
+			userId,
+			type,
+			side,
+			price,
+			size,
+			status: status,
+			datetime: new Date(),
+		});
 
-			await this.orderRepository.save(order);
+		await this.orderRepository.save(order);
 
-			throw error;
+		if (!hasSufficientAssets) {
+			throw new BadRequestException(
+				'Insufficient assets to process the transaction',
+			);
 		}
+
+		return order;
 	}
 
 	validateSize(size: number | undefined): asserts size is number {
 		if (typeof size !== 'number' || size <= 0) {
 			throw new BadRequestException(
 				'Size is required and must be greater than 0',
-			);
-		}
-	}
-
-	validateAssets(size: number, previousOrders: Order[]): void {
-		const assetsQuantity =
-			this.portfolioService.calculateQuantityAvailableStocks(
-				previousOrders,
-			);
-		if (assetsQuantity < size) {
-			throw new BadRequestException(
-				'Insufficient assets to process the transaction',
 			);
 		}
 	}

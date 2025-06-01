@@ -35,6 +35,8 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 
 		this.validateSize(dto.size, dto.amount);
 
+		const instrument = await this.getInstrumentById(instrumentId);
+
 		const price = await this.getPrice(instrumentId);
 
 		const finalSize = this.calculateFinalSize({
@@ -43,42 +45,38 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 			size,
 		});
 
-		const instrument = await this.getInstrumentById(instrumentId);
-
 		const previousOrders = await this.getPreviousOrders(userId);
 
-		try {
-			this.validateFunds(price, finalSize, previousOrders);
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size: finalSize,
-				status: OrderStatus.FILLED,
-				datetime: new Date(),
-			});
+		const totalAmountOrder = price * finalSize;
+		const currentCash =
+			this.portfolioService.calculateAvailableCash(previousOrders);
 
-			await this.orderRepository.save(order);
+		const hasSufficientFunds = currentCash >= totalAmountOrder;
 
-			return order;
-		} catch (error) {
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size: finalSize,
-				status: OrderStatus.REJECTED,
-				datetime: new Date(),
-			});
+		const status = hasSufficientFunds
+			? OrderStatus.FILLED
+			: OrderStatus.REJECTED;
 
-			await this.orderRepository.save(order);
+		const order = new Order({
+			instrument,
+			userId,
+			type,
+			side,
+			price,
+			size: finalSize,
+			status: status,
+			datetime: new Date(),
+		});
 
-			throw error;
+		await this.orderRepository.save(order);
+
+		if (!hasSufficientFunds) {
+			throw new BadRequestException(
+				'Insufficient funds to process the transaction',
+			);
 		}
+
+		return order;
 	}
 
 	validateSize(size?: number, amount?: number): void {
@@ -91,16 +89,6 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 
 		if (!hasSize && !hasAmount) {
 			throw new Error('Either size or amount must be defined');
-		}
-	}
-
-	validateFunds(price: number, size: number, previousOrders: Order[]): void {
-		const cash =
-			this.portfolioService.calculateAvailableCash(previousOrders);
-		if (cash < price * size) {
-			throw new BadRequestException(
-				'Insufficient funds to process the transaction',
-			);
 		}
 	}
 

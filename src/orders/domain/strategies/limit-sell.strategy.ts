@@ -37,38 +37,37 @@ export class LimitSellStrategy implements OrderCreationStrategy {
 
 		const previousOrders = await this.getPreviousOrders(userId);
 
-		try {
-			this.validateAssets(size, previousOrders);
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.NEW,
-				datetime: new Date(),
-			});
+		const currentAssetsQuantity =
+			this.portfolioService.calculateQuantityAvailableStocks(
+				previousOrders,
+			);
 
-			await this.orderRepository.save(order);
+		const hasSufficientAssets = currentAssetsQuantity >= size;
 
-			return order;
-		} catch (error) {
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.REJECTED,
-				datetime: new Date(),
-			});
+		const status = hasSufficientAssets
+			? OrderStatus.NEW
+			: OrderStatus.REJECTED;
 
-			await this.orderRepository.save(order);
+		const order = new Order({
+			instrument,
+			userId,
+			type,
+			side,
+			price,
+			size,
+			status: status,
+			datetime: new Date(),
+		});
 
-			throw error;
+		await this.orderRepository.save(order);
+
+		if (!hasSufficientAssets) {
+			throw new ConflictException(
+				'Insufficient assets to process the transaction',
+			);
 		}
+
+		return order;
 	}
 
 	validatePrice(price: number | undefined): asserts price is number {
@@ -83,18 +82,6 @@ export class LimitSellStrategy implements OrderCreationStrategy {
 		if (typeof size !== 'number' || size <= 0) {
 			throw new BadRequestException(
 				'Size is required and must be greater than 0',
-			);
-		}
-	}
-
-	validateAssets(size: number, previousOrders: Order[]): void {
-		const assetsQuantity =
-			this.portfolioService.calculateQuantityAvailableStocks(
-				previousOrders,
-			);
-		if (assetsQuantity < size) {
-			throw new ConflictException(
-				'Insufficient assets to process the transaction',
 			);
 		}
 	}

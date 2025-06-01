@@ -38,38 +38,37 @@ export class LimitBuyStrategy implements OrderCreationStrategy {
 
 		const previousOrders = await this.getPreviousOrders(userId);
 
-		try {
-			this.validateFunds(size, price, previousOrders);
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.NEW,
-				datetime: new Date(),
-			});
+		const currentCash =
+			this.portfolioService.calculateAvailableCash(previousOrders);
 
-			await this.orderRepository.save(order);
+		const totalAmountOrder = price * size;
 
-			return order;
-		} catch (error) {
-			const order = new Order({
-				instrument,
-				userId,
-				type,
-				side,
-				price,
-				size,
-				status: OrderStatus.REJECTED,
-				datetime: new Date(),
-			});
+		const hasSufficientFunds = currentCash >= totalAmountOrder;
 
-			await this.orderRepository.save(order);
+		const status = hasSufficientFunds
+			? OrderStatus.NEW
+			: OrderStatus.REJECTED;
 
-			throw error;
+		const order = new Order({
+			instrument,
+			userId,
+			type,
+			side,
+			price,
+			size,
+			status: status,
+			datetime: new Date(),
+		});
+
+		await this.orderRepository.save(order);
+
+		if (!hasSufficientFunds) {
+			throw new ConflictException(
+				'Insufficient funds to process the transaction',
+			);
 		}
+
+		return order;
 	}
 
 	validatePrice(price: number | undefined): asserts price is number {
@@ -84,16 +83,6 @@ export class LimitBuyStrategy implements OrderCreationStrategy {
 		if (typeof size !== 'number' || size <= 0) {
 			throw new BadRequestException(
 				'Size is required and must be greater than 0',
-			);
-		}
-	}
-
-	validateFunds(price: number, size: number, previousOrders: Order[]): void {
-		const cash =
-			this.portfolioService.calculateAvailableCash(previousOrders);
-		if (cash < price * size) {
-			throw new ConflictException(
-				'Insufficient funds to process the transaction',
 			);
 		}
 	}
