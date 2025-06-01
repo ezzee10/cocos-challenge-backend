@@ -36,10 +36,14 @@ export class LimitBuyStrategy implements OrderCreationStrategy {
 
 		const instrument = await this.getInstrumentById(instrumentId);
 
-		const previousOrders = await this.getPreviousOrders(userId);
+		const orders = await this.orderRepository.getOrders({
+			userId,
+			status: OrderStatus.FILLED,
+			instrumentId,
+		});
 
 		const currentCash =
-			this.portfolioService.calculateAvailableCash(previousOrders);
+			this.portfolioService.calculateAvailableCash(orders);
 
 		const totalAmountOrder = price * size;
 
@@ -85,15 +89,6 @@ export class LimitBuyStrategy implements OrderCreationStrategy {
 				'Size is required and must be greater than 0',
 			);
 		}
-	}
-
-	async getPreviousOrders(userId: number): Promise<Order[]> {
-		const previousOrders =
-			await this.orderRepository.getOrdersByUserIdAndStatus(
-				userId,
-				OrderStatus.FILLED,
-			);
-		return previousOrders;
 	}
 
 	async getInstrumentById(instrumentId: number): Promise<Instrument> {

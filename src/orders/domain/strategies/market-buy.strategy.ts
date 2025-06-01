@@ -45,11 +45,14 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 			size,
 		});
 
-		const previousOrders = await this.getPreviousOrders(userId);
+		const orders = await this.orderRepository.getOrders({
+			userId,
+			status: OrderStatus.FILLED,
+		});
 
 		const totalAmountOrder = price * finalSize;
 		const currentCash =
-			this.portfolioService.calculateAvailableCash(previousOrders);
+			this.portfolioService.calculateAvailableCash(orders);
 
 		const hasSufficientFunds = currentCash >= totalAmountOrder;
 
@@ -119,15 +122,6 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 		throw new BadRequestException(
 			'Missing parameters: either size or amount is required',
 		);
-	}
-
-	async getPreviousOrders(userId: number): Promise<Order[]> {
-		const previousOrders =
-			await this.orderRepository.getOrdersByUserIdAndStatus(
-				userId,
-				OrderStatus.FILLED,
-			);
-		return previousOrders;
 	}
 
 	async getClosePriceMarketByInstrumentId(

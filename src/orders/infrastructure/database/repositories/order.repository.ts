@@ -3,9 +3,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from 'src/orders/domain/models/order.model';
 import { Repository } from 'typeorm';
 
-import { IOrderRepository } from 'src/orders/domain/repositories/order.repository.interface';
+import {
+	GetOrdersFilters,
+	IOrderRepository,
+} from 'src/orders/domain/repositories/order.repository.interface';
 import { OrderEntity } from '../entities/order.entity';
-import { OrderStatus } from 'src/orders/domain/enums/order-status.enum';
 import { Optional } from 'src/common/utils/utils';
 import { UserEntity } from 'src/users/infrastructure/database/entities/user.entity';
 import { Instrument } from 'src/instruments/domain/models/instrument.model';
@@ -25,14 +27,31 @@ export class OrderRepository implements IOrderRepository {
 		return this.mapOrderEntityToOrder(orderEntity);
 	}
 
-	async getOrdersByUserIdAndStatus(
-		userId: number,
-		status: OrderStatus,
-	): Promise<Order[]> {
-		const orderEntities = await this.orderRepository.find({
-			where: { user: { id: userId }, status },
-			relations: ['instrument', 'user'],
-		});
+	async getOrders(filters: GetOrdersFilters): Promise<Order[]> {
+		const query = this.orderRepository
+			.createQueryBuilder('order')
+			.leftJoinAndSelect('order.instrument', 'instrument')
+			.leftJoinAndSelect('order.user', 'user');
+
+		if (filters.status) {
+			query.andWhere('order.status = :status', {
+				status: filters.status,
+			});
+		}
+
+		if (filters.instrumentId) {
+			query.andWhere('order.instrument.id = :instrumentId', {
+				instrumentId: filters.instrumentId,
+			});
+		}
+
+		if (filters.userId) {
+			query.andWhere('order.user.id = :userId', {
+				userId: filters.userId,
+			});
+		}
+
+		const orderEntities = await query.getMany();
 
 		return orderEntities.map((orderEntity) =>
 			this.mapOrderEntityToOrder(orderEntity),

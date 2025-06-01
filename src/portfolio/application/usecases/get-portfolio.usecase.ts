@@ -18,10 +18,10 @@ export class GetPortfolioByUserIdUseCase {
 	) {}
 
 	async execute(userId: number): Promise<Portfolio> {
-		const orders = await this.orderRepository.getOrdersByUserIdAndStatus(
+		const orders = await this.orderRepository.getOrders({
 			userId,
-			OrderStatus.FILLED,
-		);
+			status: OrderStatus.FILLED,
+		});
 
 		const positions = await this.calculatePositionsByOrders.execute(orders);
 

@@ -39,12 +39,14 @@ export class MarketSellStrategy implements OrderCreationStrategy {
 
 		const price = await this.getPrice(instrumentId);
 
-		const previousOrders = await this.getPreviousOrders(userId);
+		const orders = await this.orderRepository.getOrders({
+			userId,
+			status: OrderStatus.FILLED,
+			instrumentId,
+		});
 
 		const currentAssetsQuantity =
-			this.portfolioService.calculateQuantityAvailableStocks(
-				previousOrders,
-			);
+			this.portfolioService.calculateQuantityAvailableStocks(orders);
 
 		const hasSufficientAssets = currentAssetsQuantity >= size;
 
@@ -80,15 +82,6 @@ export class MarketSellStrategy implements OrderCreationStrategy {
 				'Size is required and must be greater than 0',
 			);
 		}
-	}
-
-	async getPreviousOrders(userId: number): Promise<Order[]> {
-		const previousOrders =
-			await this.orderRepository.getOrdersByUserIdAndStatus(
-				userId,
-				OrderStatus.FILLED,
-			);
-		return previousOrders;
 	}
 
 	async getClosePriceMarketByInstrumentId(

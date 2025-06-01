@@ -37,11 +37,14 @@ export class CashOutStrategy implements OrderCreationStrategy {
 
 		const instrument = await this.getInstrumentById(instrumentId);
 
-		const previousOrders = await this.getPreviousOrders(userId);
+		const orders = await this.orderRepository.getOrders({
+			userId,
+			status: OrderStatus.FILLED,
+		});
 
 		const totalAmountOrder = price * size;
 		const currentCash =
-			this.portfolioService.calculateAvailableCash(previousOrders);
+			this.portfolioService.calculateAvailableCash(orders);
 
 		const hasSufficientFunds = currentCash >= totalAmountOrder;
 
@@ -77,15 +80,6 @@ export class CashOutStrategy implements OrderCreationStrategy {
 				'Size is required and must be greater than 0',
 			);
 		}
-	}
-
-	async getPreviousOrders(userId: number): Promise<Order[]> {
-		const previousOrders =
-			await this.orderRepository.getOrdersByUserIdAndStatus(
-				userId,
-				OrderStatus.FILLED,
-			);
-		return previousOrders;
 	}
 
 	async getInstrumentById(instrumentId: number): Promise<Instrument> {
