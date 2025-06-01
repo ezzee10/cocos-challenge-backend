@@ -41,7 +41,7 @@ describe('OrderController', () => {
 
 	const mockOrderRepository: jest.Mocked<IOrderRepository> = {
 		save: jest.fn(),
-		getOrdersByUserIdAndStatus: jest.fn(),
+		getOrders: jest.fn(),
 		findById: jest.fn(),
 	};
 
@@ -291,9 +291,7 @@ describe('OrderController', () => {
 			expect(order.getSize()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 1,
@@ -333,9 +331,7 @@ describe('OrderController', () => {
 			expect(order.getSize()).toBe(2);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 1,
@@ -375,9 +371,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(validPriceMarketData.getClose());
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -419,9 +413,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(validPriceMarketData.getClose());
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -463,9 +455,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 66,
@@ -504,9 +494,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 66,
@@ -545,9 +533,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(100);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -589,9 +575,7 @@ describe('OrderController', () => {
 			expect(order.getStatus()).toBe(OrderStatus.REJECTED);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -630,9 +614,7 @@ describe('OrderController', () => {
 			expect(order.getStatus()).toBe(OrderStatus.REJECTED);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);

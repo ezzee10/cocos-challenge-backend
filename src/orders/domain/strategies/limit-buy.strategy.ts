@@ -39,7 +39,6 @@ export class LimitBuyStrategy implements OrderCreationStrategy {
 		const orders = await this.orderRepository.getOrders({
 			userId,
 			status: OrderStatus.FILLED,
-			instrumentId,
 		});
 
 		const currentCash =

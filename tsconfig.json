@@ -18,5 +18,5 @@
 		"strictBindCallApply": true,
 		"noFallthroughCasesInSwitch": true
 	},
-	"include": ["src/*", "src/configs/migrations", "test/*"]
+	"include": ["src/**/*.ts", "src/configs/migrations", "test/**/*.ts"]
 }
