@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InstrumentEntity } from '../entities/instrument.entity';
-import { Like, Repository } from 'typeorm';
+import { FindOptionsWhere, Like, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Optional } from 'src/common/utils/utils';
 import { Instrument } from 'src/instruments/domain/models/instrument.model';
-import { IInstrumentRepository } from 'src/instruments/domain/repositories/instrument.repository.interface';
+import {
+	IInstrumentRepository,
+	SearchInstrumentsFilter,
+} from 'src/instruments/domain/repositories/instrument.repository.interface';
 
 @Injectable()
 export class InstrumentRepository implements IInstrumentRepository {
@@ -25,29 +28,34 @@ export class InstrumentRepository implements IInstrumentRepository {
 		return this.mapInstrumentEntityToInstrument(instrumentEntity);
 	}
 
-	async searchInstrumentsByTicketOrName(
-		ticker: string,
-		name: string,
-	): Promise<Optional<Instrument[]>> {
-		const where = [{ ticker }, { name: Like(`%${name}%`) }];
+	async searchInstruments(
+		searchFilter: SearchInstrumentsFilter,
+	): Promise<Instrument[]> {
+		const where: FindOptionsWhere<InstrumentEntity> = {};
+
+		if (searchFilter.ticker) {
+			where.ticker = searchFilter.ticker;
+		}
+
+		if (searchFilter.name) {
+			where.name = Like(`%${searchFilter.name}%`);
+		}
 
 		const instrumentEntities = await this.instrumentRepository.find({
 			where,
 		});
 
-		return instrumentEntities.map((instrumentEntity) =>
-			this.mapInstrumentEntityToInstrument(instrumentEntity),
-		);
+		return instrumentEntities.map(this.mapInstrumentEntityToInstrument);
 	}
 
-	private mapInstrumentEntityToInstrument(
+	private mapInstrumentEntityToInstrument = (
 		instrumentEntity: InstrumentEntity,
-	): Instrument {
+	): Instrument => {
 		return new Instrument({
 			id: instrumentEntity.id,
 			ticker: instrumentEntity.ticker,
 			name: instrumentEntity.name,
 			type: instrumentEntity.type,
 		});
-	}
+	};
 }

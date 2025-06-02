@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Order } from 'src/orders/domain/models/order.model';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 
 import {
 	GetOrdersFilters,
@@ -28,33 +28,27 @@ export class OrderRepository implements IOrderRepository {
 	}
 
 	async getOrders(filters: GetOrdersFilters): Promise<Order[]> {
-		const query = this.orderRepository
-			.createQueryBuilder('order')
-			.leftJoinAndSelect('order.instrument', 'instrument')
-			.leftJoinAndSelect('order.user', 'user');
+		const where: FindOptionsWhere<OrderEntity> = {};
 
 		if (filters.status) {
-			query.andWhere('order.status = :status', {
-				status: filters.status,
-			});
+			where.status = filters.status;
 		}
 
 		if (filters.instrumentId) {
-			query.andWhere('order.instrument.id = :instrumentId', {
-				instrumentId: filters.instrumentId,
-			});
+			where.instrument = { id: filters.instrumentId };
 		}
 
 		if (filters.userId) {
-			query.andWhere('order.user.id = :userId', {
-				userId: filters.userId,
-			});
+			where.user = { id: filters.userId };
 		}
 
-		const orderEntities = await query.getMany();
+		const orderEntities = await this.orderRepository.find({
+			where,
+			relations: ['instrument', 'user'],
+		});
 
-		return orderEntities.map((orderEntity) =>
-			this.mapOrderEntityToOrder(orderEntity),
+		return orderEntities.map((entity) =>
+			this.mapOrderEntityToOrder(entity),
 		);
 	}
 

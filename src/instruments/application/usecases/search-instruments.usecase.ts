@@ -10,12 +10,10 @@ export class SearchInstrumentsUseCase {
 	) {}
 
 	async execute(ticker: string, name: string): Promise<Instrument[]> {
-		const instruments =
-			await this.instrumentRepository.searchInstrumentsByTicketOrName(
-				ticker,
-				name,
-			);
-
+		const instruments = await this.instrumentRepository.searchInstruments({
+			ticker,
+			name,
+		});
 		return instruments || [];
 	}
 }
