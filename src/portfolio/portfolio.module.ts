@@ -9,7 +9,7 @@ import { MarketDataRepository } from 'src/market/infrastructure/database/reposit
 import { OrderRepository } from 'src/orders/infrastructure/database/repositories/order.repository';
 
 import { PortfolioService } from './domain/services/portfolio.service';
-import { CalculatePositionsByOrdersUseCase } from './application/usecases/calculate-positions.usecase';
+import { CreatePositionsByOrdersUseCase } from './application/usecases/create-positions.usecase';
 import { GetPortfolioByUserIdUseCase } from './application/usecases/get-portfolio.usecase';
 import { PortfolioController } from './presenter/controllers/portfolio.controller';
 
@@ -24,26 +24,26 @@ import { PortfolioController } from './presenter/controllers/portfolio.controlle
 	providers: [
 		PortfolioService,
 		{
-			provide: CalculatePositionsByOrdersUseCase,
+			provide: CreatePositionsByOrdersUseCase,
 			useFactory: (marketDataRepository: MarketDataRepository) =>
-				new CalculatePositionsByOrdersUseCase(marketDataRepository),
+				new CreatePositionsByOrdersUseCase(marketDataRepository),
 			inject: ['IMarketRepository'],
 		},
 		{
 			provide: GetPortfolioByUserIdUseCase,
 			useFactory: (
 				orderRepository: OrderRepository,
-				calculatePositions: CalculatePositionsByOrdersUseCase,
+				createtePositions: CreatePositionsByOrdersUseCase,
 				portfolioService: PortfolioService,
 			) =>
 				new GetPortfolioByUserIdUseCase(
 					orderRepository,
-					calculatePositions,
+					createtePositions,
 					portfolioService,
 				),
 			inject: [
 				'IOrderRepository',
-				CalculatePositionsByOrdersUseCase,
+				CreatePositionsByOrdersUseCase,
 				PortfolioService,
 			],
 		},

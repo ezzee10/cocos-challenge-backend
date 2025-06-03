@@ -50,24 +50,4 @@ export class PortfolioService {
 
 		return stocks;
 	}
-
-	calculateStockHoldingsValue(orders: Order[]): number {
-		let total = 0;
-
-		for (const order of orders) {
-			const instrument = order.getInstrument();
-
-			if (
-				instrument.getType() === InstrumentType.STOCK &&
-				order.getSide() === OrderSide.BUY
-			) {
-				const price = order.getPrice();
-				const size = order.getSize();
-
-				total += price * size;
-			}
-		}
-
-		return total;
-	}
 }

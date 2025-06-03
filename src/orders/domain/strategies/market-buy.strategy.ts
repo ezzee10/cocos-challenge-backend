@@ -87,11 +87,15 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 		const hasAmount = amount != null;
 
 		if (hasSize && hasAmount) {
-			throw new Error('Size and amount cannot both be defined');
+			throw new BadRequestException(
+				'Size and amount cannot both be defined',
+			);
 		}
 
 		if (!hasSize && !hasAmount) {
-			throw new Error('Either size or amount must be defined');
+			throw new BadRequestException(
+				'Either size or amount must be defined',
+			);
 		}
 	}
 
@@ -162,7 +166,7 @@ export class MarketBuyStrategy implements OrderCreationStrategy {
 
 		if (instrument.getType() !== InstrumentType.STOCK) {
 			throw new ConflictException(
-				`Instrument with id ${instrumentId} is not a currency`,
+				`Instrument with id ${instrumentId} is not a stock`,
 			);
 		}
 

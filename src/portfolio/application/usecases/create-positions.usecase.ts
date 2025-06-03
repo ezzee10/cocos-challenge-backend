@@ -2,27 +2,23 @@ import { BadRequestException, Inject } from '@nestjs/common';
 import { Order } from 'src/orders/domain/models/order.model';
 import { Position } from 'src/portfolio/domain/models/position.model';
 import { OrderSide } from 'src/orders/domain/enums/order-side.enum';
-import { InstrumentType } from 'src/instruments/domain/enums/instrument-type.enum';
 import { IMarketRepository } from 'src/market/domain/repositories/market-data.repository.interface';
 
-export class CalculatePositionsByOrdersUseCase {
+export class CreatePositionsByOrdersUseCase {
 	constructor(
 		@Inject('IMarketRepository')
 		private readonly marketDataRepository: IMarketRepository,
 	) {}
 
 	async execute(orders: Order[]): Promise<Position[]> {
-		const filteredOrders = this.filterNonCurrencyOrders(orders);
-		const groupedOrders = this.groupOrdersByTicker(filteredOrders);
-		const instrumentIds = Array.from(
-			new Set(filteredOrders.map((o) => o.getInstrument().getId())),
-		);
+		const groupedOrdersByTicker = this.groupOrdersByTicker(orders);
+		const instrumentIds = this.getDistinctInstrumentIds(orders);
 
 		const marketDataMap = await this.fetchMarketDataMap(instrumentIds);
 
 		const positions: Position[] = [];
-		for (const ordersGroup of groupedOrders.values()) {
-			const position = this.calculatePosition(ordersGroup, marketDataMap);
+		for (const ordersGroup of groupedOrdersByTicker.values()) {
+			const position = this.createPosition(ordersGroup, marketDataMap);
 			if (position) {
 				positions.push(position);
 			}
@@ -31,9 +27,9 @@ export class CalculatePositionsByOrdersUseCase {
 		return positions;
 	}
 
-	private filterNonCurrencyOrders(orders: Order[]): Order[] {
-		return orders.filter(
-			(o) => o.getInstrument().getType() !== InstrumentType.CURRENCY,
+	private getDistinctInstrumentIds(orders: Order[]): number[] {
+		return Array.from(
+			new Set(orders.map((order) => order.getInstrument().getId())),
 		);
 	}
 
@@ -74,7 +70,7 @@ export class CalculatePositionsByOrdersUseCase {
 		return map;
 	}
 
-	private calculatePosition(
+	private createPosition(
 		orders: Order[],
 		marketPriceMap: Map<number, number>,
 	): Position | null {
@@ -88,21 +84,8 @@ export class CalculatePositionsByOrdersUseCase {
 			);
 		}
 
-		let totalBuyQuantity = 0;
-		let totalBuyCost = 0;
-		let totalQuantity = 0;
-
-		for (const order of orders) {
-			const size = order.getSize();
-			const price = order.getPrice();
-			if (order.getSide() === OrderSide.BUY) {
-				totalBuyQuantity += size;
-				totalBuyCost += size * price;
-				totalQuantity += size;
-			} else {
-				totalQuantity -= size;
-			}
-		}
+		const { totalBuyQuantity, totalBuyCost, totalQuantity } =
+			this.calculateOrderTotals(orders);
 
 		if (totalQuantity <= 0) {
 			return null;
@@ -122,5 +105,29 @@ export class CalculatePositionsByOrdersUseCase {
 			positionValue,
 			performance: +performance.toFixed(2),
 		});
+	}
+
+	private calculateOrderTotals(orders: Order[]): {
+		totalBuyQuantity: number;
+		totalBuyCost: number;
+		totalQuantity: number;
+	} {
+		let totalBuyQuantity = 0;
+		let totalBuyCost = 0;
+		let totalQuantity = 0;
+
+		for (const order of orders) {
+			const size = order.getSize();
+			const price = order.getPrice();
+			if (order.getSide() === OrderSide.BUY) {
+				totalBuyQuantity += size;
+				totalBuyCost += size * price;
+				totalQuantity += size;
+			} else {
+				totalQuantity -= size;
+			}
+		}
+
+		return { totalBuyQuantity, totalBuyCost, totalQuantity };
 	}
 }
