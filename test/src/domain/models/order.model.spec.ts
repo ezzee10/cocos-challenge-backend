@@ -1,9 +1,9 @@
-import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
-import { OrderSide } from 'src/domain/enums/order-side.enum';
-import { OrderStatus } from 'src/domain/enums/order-status.enum';
-import { OrderType } from 'src/domain/enums/order-type.enum';
-import { Instrument } from 'src/domain/models/instrument.model';
-import { Order } from 'src/domain/models/order.model';
+import { Order } from 'src/orders/domain/models/order.model';
+import { OrderSide } from 'src/orders/domain/enums/order-side.enum';
+import { OrderType } from 'src/orders/domain/enums/order-type.enum';
+import { OrderStatus } from 'src/orders/domain/enums/order-status.enum';
+import { Instrument } from 'src/instruments/domain/models/instrument.model';
+import { InstrumentType } from 'src/instruments/domain/enums/instrument-type.enum';
 
 describe('Order', () => {
 	const validInstrumentCash = new Instrument({
@@ -44,22 +44,12 @@ describe('Order', () => {
 					...validProps,
 					type: OrderType.MARKET,
 					price: 1,
+					status: OrderStatus.FILLED,
 				};
 
 				const order = new Order(props);
 
 				expect(order.getStatus()).toBe(OrderStatus.FILLED);
-			});
-
-			it('Given an invalid order type, when creating an Order, then it should throw an error', () => {
-				const props = {
-					...validProps,
-					type: 'INVALID_TYPE' as OrderType,
-				};
-
-				expect(() => new Order(props)).toThrow(
-					'Invalid order type. Cannot determine status.',
-				);
 			});
 
 			it('Given a LIMIT order with price <= 0 or is not defined, when creating an Order, then it should throw an error', () => {
@@ -82,7 +72,11 @@ describe('Order', () => {
 			});
 
 			it('Given an order NOT in NEW status, when cancelOrder is called, then it should throw an error', () => {
-				const props = { ...validProps, type: OrderType.MARKET };
+				const props = {
+					...validProps,
+					type: OrderType.MARKET,
+					status: OrderStatus.FILLED,
+				};
 				const order = new Order(props);
 				expect(order.getStatus()).toBe(OrderStatus.FILLED);
 

@@ -1,22 +1,39 @@
 import * as request from 'supertest';
 import { Server } from 'http';
+
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { OrderSide } from 'src/domain/enums/order-side.enum';
-import { OrderType } from 'src/domain/enums/order-type.enum';
-import { OrderController } from 'src/presenter/controllers/order.controller';
 import { Test, TestingModule } from '@nestjs/testing';
-import { IOrderRepository } from 'src/domain/repositories/order.repository.interface';
-import { IMarketRepository } from 'src/domain/repositories/market-data.repository.interface';
-import { IInstrumentRepository } from 'src/domain/repositories/instrument.repository.interface';
-import { OrderStatus } from 'src/domain/enums/order-status.enum';
-import { InstrumentType } from 'src/domain/enums/instrument-type.enum';
-import { Instrument } from 'src/domain/models/instrument.model';
-import { Order } from 'src/domain/models/order.model';
-import { MarketData } from 'src/domain/models/market-data.model';
-import { PortfolioService } from 'src/domain/services/portfolio.service';
-import { CreateOrderUseCase } from 'src/application/usecases/create-order.usecase';
-import { OrderValidationService } from 'src/domain/services/order-validation.service';
-import { CancelOrderUseCase } from 'src/application/usecases/cancel-order.usecase';
+
+import { OrderSide } from 'src/orders/domain/enums/order-side.enum';
+import { OrderType } from 'src/orders/domain/enums/order-type.enum';
+import { OrderStatus } from 'src/orders/domain/enums/order-status.enum';
+import { InstrumentType } from 'src/instruments/domain/enums/instrument-type.enum';
+
+import { IOrderRepository } from 'src/orders/domain/repositories/order.repository.interface';
+import { IMarketRepository } from 'src/market/domain/repositories/market-data.repository.interface';
+import { IInstrumentRepository } from 'src/instruments/domain/repositories/instrument.repository.interface';
+
+import { Order } from 'src/orders/domain/models/order.model';
+import { MarketData } from 'src/market/domain/models/market-data.model';
+import { Instrument } from 'src/instruments/domain/models/instrument.model';
+
+import { InstrumentRepository } from 'src/instruments/infrastructure/database/repositories/instrument.repository';
+
+import { PortfolioService } from 'src/portfolio/domain/services/portfolio.service';
+
+import { MarketBuyStrategy } from 'src/orders/domain/strategies/market-buy.strategy';
+import { MarketSellStrategy } from 'src/orders/domain/strategies/market-sell.strategy';
+import { CashOutStrategy } from 'src/orders/domain/strategies/cash.out.strategy';
+import { CashInStrategy } from 'src/orders/domain/strategies/cash-in.strategy';
+import { LimitBuyStrategy } from 'src/orders/domain/strategies/limit-buy.strategy';
+import { LimitSellStrategy } from 'src/orders/domain/strategies/limit-sell.strategy';
+
+import { OrderCreateStrategyFactory } from 'src/orders/domain/factories/create-order.factory';
+
+import { CreateOrderUseCase } from 'src/orders/application/usecases/create-order.usecase';
+import { CancelOrderUseCase } from 'src/orders/application/usecases/cancel-order.usecase';
+
+import { OrderController } from 'src/orders/presenter/controllers/order.controller';
 
 describe('OrderController', () => {
 	let app: INestApplication;
@@ -24,7 +41,7 @@ describe('OrderController', () => {
 
 	const mockOrderRepository: jest.Mocked<IOrderRepository> = {
 		save: jest.fn(),
-		getOrdersByUserIdAndStatus: jest.fn(),
+		getOrders: jest.fn(),
 		findById: jest.fn(),
 	};
 
@@ -50,42 +67,152 @@ describe('OrderController', () => {
 					provide: 'IInstrumentRepository',
 					useValue: mockInstrumentRepository,
 				},
-				{ provide: PortfolioService, useClass: PortfolioService },
+				PortfolioService,
 				{
-					provide: OrderValidationService,
-					useFactory: (portfolioService: PortfolioService) =>
-						new OrderValidationService(portfolioService),
-					inject: [PortfolioService],
-				},
-				{
-					provide: CreateOrderUseCase,
+					provide: MarketBuyStrategy,
 					useFactory: (
-						orderRepository: typeof mockOrderRepository,
-						marketDataRepository: typeof mockMarketDataRepository,
-						instrumentRepository: typeof mockInstrumentRepository,
-						orderValidationService: OrderValidationService,
-					) => {
-						return new CreateOrderUseCase(
+						orderRepository: IOrderRepository,
+						marketRepository: IMarketRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new MarketBuyStrategy(
 							orderRepository,
-							marketDataRepository,
+							marketRepository,
+							portfolioService,
 							instrumentRepository,
-							orderValidationService,
-						);
-					},
+						),
 					inject: [
 						'IOrderRepository',
 						'IMarketRepository',
+						PortfolioService,
 						'IInstrumentRepository',
-						OrderValidationService,
 					],
 				},
 				{
-					provide: CancelOrderUseCase,
+					provide: MarketSellStrategy,
 					useFactory: (
-						orderRepository: typeof mockOrderRepository,
-					) => {
-						return new CancelOrderUseCase(orderRepository);
-					},
+						orderRepository: IOrderRepository,
+						marketRepository: IMarketRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new MarketSellStrategy(
+							orderRepository,
+							marketRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						'IMarketRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: CashOutStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new CashOutStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: CashInStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new CashInStrategy(
+							orderRepository,
+							instrumentRepository,
+						),
+					inject: ['IOrderRepository', 'IInstrumentRepository'],
+				},
+				{
+					provide: LimitBuyStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new LimitBuyStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: LimitSellStrategy,
+					useFactory: (
+						orderRepository: IOrderRepository,
+						portfolioService: PortfolioService,
+						instrumentRepository: InstrumentRepository,
+					) =>
+						new LimitSellStrategy(
+							orderRepository,
+							portfolioService,
+							instrumentRepository,
+						),
+					inject: [
+						'IOrderRepository',
+						PortfolioService,
+						'IInstrumentRepository',
+					],
+				},
+				{
+					provide: OrderCreateStrategyFactory,
+					useFactory: (
+						marketBuyStrategy: MarketBuyStrategy,
+						marketSellStrategy: MarketSellStrategy,
+						cashOutStrategy: CashOutStrategy,
+						cashInStrategy: CashInStrategy,
+						limitBuyStrategy: LimitBuyStrategy,
+						limitSellStrategy: LimitSellStrategy,
+					) =>
+						new OrderCreateStrategyFactory(
+							marketBuyStrategy,
+							marketSellStrategy,
+							cashOutStrategy,
+							cashInStrategy,
+							limitBuyStrategy,
+							limitSellStrategy,
+						),
+					inject: [
+						MarketBuyStrategy,
+						MarketSellStrategy,
+						CashOutStrategy,
+						CashInStrategy,
+						LimitBuyStrategy,
+						LimitSellStrategy,
+					],
+				},
+				{
+					provide: CreateOrderUseCase,
+					useFactory: (strategyFactory: OrderCreateStrategyFactory) =>
+						new CreateOrderUseCase(strategyFactory),
+					inject: [OrderCreateStrategyFactory],
+				},
+				{
+					provide: CancelOrderUseCase,
+					useFactory: (orderRepository: IOrderRepository) =>
+						new CancelOrderUseCase(orderRepository),
 					inject: ['IOrderRepository'],
 				},
 			],
@@ -164,9 +291,7 @@ describe('OrderController', () => {
 			expect(order.getSize()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 1,
@@ -206,9 +331,7 @@ describe('OrderController', () => {
 			expect(order.getSize()).toBe(2);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 1,
@@ -248,9 +371,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(validPriceMarketData.getClose());
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -292,9 +413,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(validPriceMarketData.getClose());
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -336,9 +455,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 66,
@@ -377,9 +494,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(1);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 
 		const payload = {
 			instrumentId: 66,
@@ -418,9 +533,7 @@ describe('OrderController', () => {
 			expect(order.getPrice()).toBe(100);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -462,9 +575,7 @@ describe('OrderController', () => {
 			expect(order.getStatus()).toBe(OrderStatus.REJECTED);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -503,9 +614,7 @@ describe('OrderController', () => {
 			expect(order.getStatus()).toBe(OrderStatus.REJECTED);
 			return Promise.resolve(order);
 		});
-		mockOrderRepository.getOrdersByUserIdAndStatus.mockResolvedValue(
-			validPreviousOrders,
-		);
+		mockOrderRepository.getOrders.mockResolvedValue(validPreviousOrders);
 		mockMarketDataRepository.getMarketDataByInstrument.mockResolvedValue(
 			validPriceMarketData,
 		);
@@ -525,7 +634,7 @@ describe('OrderController', () => {
 
 		const responseExpected = {
 			error: 'Conflict',
-			message: 'Insufficient stocks to process the transaction',
+			message: 'Insufficient assets to process the transaction',
 			statusCode: HttpStatus.CONFLICT,
 		};
 		expect(response.status).toBe(HttpStatus.CONFLICT);
@@ -578,7 +687,7 @@ describe('OrderController', () => {
 
 		const responseExpected = {
 			error: 'Conflict',
-			message: `Market data not found for instrumentId ${payload.instrumentId}`,
+			message: `Market price not found for instrument with id ${payload.instrumentId}`,
 			statusCode: HttpStatus.CONFLICT,
 		};
 
